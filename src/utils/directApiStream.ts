@@ -461,6 +461,7 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
 
       const summaryLines = earlierMessages
         .filter((m) => m.content && m.content.trim())
+        .slice(-40)
         .map((m) => `${m.role === 'assistant' ? 'Kizuna-Zek' : 'Usuario'}: ${m.content.slice(0, 220)}${m.content.length > 220 ? '...' : ''}`)
         .join('\n');
       if (summaryLines) {
@@ -974,15 +975,41 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
     'gemini-flash-latest',
   ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
 
-  // Format Gemini payload
+  // Format Gemini payload with Rolling Auto-Compaction for infinite chat support
+  let geminiEffectiveMessages = messages;
+  let geminiHistorySummary = '';
+  if (messages.length > 24) {
+    let cutIdx = messages.length - 16;
+    while (cutIdx < messages.length - 1 && messages[cutIdx]?.role === 'assistant') {
+      cutIdx++;
+    }
+    const earlierMsgs = messages.slice(0, cutIdx);
+    geminiEffectiveMessages = messages.slice(cutIdx);
+    const sumLines = earlierMsgs
+      .filter((m) => m.content && m.content.trim())
+      .slice(-40)
+      .map((m) => `${m.role === 'assistant' ? 'Kizuna-Zek' : 'Usuario'}: ${m.content.slice(0, 220)}${m.content.length > 220 ? '...' : ''}`)
+      .join('\n');
+    if (sumLines) {
+      geminiHistorySummary = `[RESUMEN COMPACTO DEL HISTORIAL PREVIO E HILOS NARRATIVOS]:\n${sumLines}\n\n`;
+    }
+  }
+
   const contents: any[] = [];
-  for (const msg of messages) {
+  let summaryInjectedGemini = false;
+  for (const msg of geminiEffectiveMessages) {
     if (msg.role === 'system') continue;
     const role = msg.role === 'assistant' ? 'model' : 'user';
     const parts: any[] = [];
 
-    if (msg.content && msg.content.trim()) {
-      parts.push({ text: msg.content.trim() });
+    let textContent = msg.content ? msg.content.trim() : '';
+    if (role === 'user' && geminiHistorySummary && !summaryInjectedGemini) {
+      summaryInjectedGemini = true;
+      textContent = `${geminiHistorySummary}${textContent}`;
+    }
+
+    if (textContent) {
+      parts.push({ text: clampTextClient(textContent, 200000) });
     }
 
     if (Array.isArray(msg.attachments)) {
@@ -1000,7 +1027,7 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
           }
         } else if (att.textContent) {
           parts.push({
-            text: `\n[Archivo Adjunto: ${att.name}]\n${att.textContent}\n`,
+            text: `\n[Archivo Adjunto: ${att.name}]\n${clampTextClient(att.textContent, 140000)}\n`,
           });
         }
       }

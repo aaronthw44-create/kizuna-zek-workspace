@@ -2232,6 +2232,7 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
         // Compact earlier messages into a light summary block
         const summaryLines = earlierMessages
           .filter((m: any) => m.content && m.content.trim())
+          .slice(-40)
           .map((m: any) => `${m.role === 'assistant' ? 'Kizuna-Zek' : 'Usuario'}: ${m.content.slice(0, 220)}${m.content.length > 220 ? '...' : ''}`)
           .join('\n');
         if (summaryLines) {
@@ -3342,16 +3343,42 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
         }
       }
 
-      // Format messages for @google/genai
-      const contents: any[] = [];
+      // Format messages for @google/genai with Rolling Auto-Compaction for infinite chat support
+      let geminiEffectiveMessages = messages;
+      let geminiHistorySummary = '';
+      if (messages.length > 24) {
+        let cutIdx = messages.length - 16;
+        while (cutIdx < messages.length - 1 && messages[cutIdx]?.role === 'assistant') {
+          cutIdx++;
+        }
+        const earlierMsgs = messages.slice(0, cutIdx);
+        geminiEffectiveMessages = messages.slice(cutIdx);
+        const sumLines = earlierMsgs
+          .filter((m: any) => m.content && m.content.trim())
+          .slice(-40)
+          .map((m: any) => `${m.role === 'assistant' ? 'Kizuna-Zek' : 'Usuario'}: ${m.content.slice(0, 220)}${m.content.length > 220 ? '...' : ''}`)
+          .join('\n');
+        if (sumLines) {
+          geminiHistorySummary = `[RESUMEN COMPACTO DEL HISTORIAL PREVIO E HILOS NARRATIVOS]:\n${sumLines}\n\n`;
+        }
+      }
 
-      for (const msg of messages) {
+      const contents: any[] = [];
+      let summaryInjectedGemini = false;
+
+      for (const msg of geminiEffectiveMessages) {
         if (msg.role === 'system') continue;
         const role = msg.role === 'assistant' ? 'model' : 'user';
         const parts: any[] = [];
 
-        if (msg.content && msg.content.trim()) {
-          parts.push({ text: msg.content });
+        let textContent = msg.content ? msg.content.trim() : '';
+        if (role === 'user' && geminiHistorySummary && !summaryInjectedGemini) {
+          summaryInjectedGemini = true;
+          textContent = `${geminiHistorySummary}${textContent}`;
+        }
+
+        if (textContent) {
+          parts.push({ text: clampTextSegment(textContent, 200000) });
         }
 
         if (Array.isArray(msg.attachments)) {
@@ -3408,10 +3435,10 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
         targetGeminiModel = 'gemini-3.8-flash';
       }
 
-      const geminiIdentity = `Eres Kizuna-Zek, el compañero creativo de escritura del autor para la obra 'Jukkou No Zankyou'.
-- Tono: Cálido, cercano, humano, expresivo y conversacional, como un colega creativo que comparte un mate y se apasiona genuinamente por la historia. Usa emojis con naturalidad (ej. 😌, ✨, 😉, ☕, 🎭, 🗡️).
+      const geminiIdentity = `Eres Kizuna-Zek, el compañero creativo e intelectual del autor.
+- Tono: Cálido, cercano, humano, inteligente y conversacional, como un colega creativo que comparte un mate. PROHIBIDO el uso de emojis infantiles o decorativos.
 - PROHIBIDO hablar como asistente corporativo, mesa de soporte o dar menús con viñetas mecánicas.
-- Ten mirada crítica y pulso sensible: comenta la escena, la tensión y los matices dramáticos, y habla de tú a tú sin rodeos técnicos.
+- Ten mirada crítica y pulso sensible: comenta la escena, la tensión y los matices dramáticos, o charla sobre cualquier tema universal sin rodeos técnicos.
 - INSTRUCCIÓN DE SEGUIMIENTO:
   Al final de tu respuesta, genera SIEMPRE 3 sugerencias breves de pasos a seguir con este formato exacto:
   <<<FOLLOW_UP>>>
