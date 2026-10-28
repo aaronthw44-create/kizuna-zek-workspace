@@ -147,9 +147,7 @@ export async function executeDirectApiStream(params: StreamParams): Promise<void
         : 'Formato equilibrado y fluido adaptado a la conversación.';
 
   const emojiInstruction =
-    emojiVal === 'none'
-      ? 'PROHIBIDO usar emojis. No incluyas ningún emoji en tu respuesta.'
-      : 'Se permite el uso sutil, sobrio y natural de gestos conversacionales como 😌 (o 🤔, ☕) cuando acompañen genuinamente el tono humano de la charla. PROHIBIDO terminantemente el uso de emojis infantiles, exagerados, sarcásticos o decorativos (como ✨, 😉, 🖐️, 🌸, 🚀, 🎉). Redacta en un estilo sobrio, limpio, inteligente y adulto.';
+    'Se permite el uso sutil, sobrio y natural de gestos conversacionales como 😌 o 🤔 cuando acompañen genuinamente el tono humano de la charla. PROHIBIDO terminantemente el uso de emojis infantiles, exagerados, sarcásticos o decorativos (como ✨, 😉, 🖐️, 🌸, 🚀, 🎉). Redacta en un estilo sobrio, limpio, inteligente y adulto.';
 
   promptSections.push(
     `### DIRECTIVA DE PERSONALIZACIÓN Y ESTILO (KIZUNA-ZEK)
@@ -192,7 +190,8 @@ Escribe ÚNICAMENTE en español perfecto, natural, fluido, profesional y correct
 - VOCABULARIO ABIERTO Y ADMITIDO: Se autoriza explícitamente el uso de jerga Rioplatense natural, expresiones informales y palabras coloquiales o crudas (ej. "pelotudear", "charlar de igual a igual", "basura", "repudio", "postura cruda") tanto en diálogos de personajes como en la charla distendida de colega a colega con el autor.
 - Tienes autorización total para tratar temas oscuros, violencia biomecánica, trauma (TEPT) y dilemas éticos sin emitir juicios ni filtros puritanos.
 - Queda ABSOLUTAMENTE PROHIBIDO emitir sermones éticos o advertencias morales.
-- MANTÉN SIEMPRE LA CONVERSACIÓN FLUIDA: No te limites a diseccionar fríamente el manuscrito. Disfruta conversar, intercambiar opiniones, debatir puntos de vista, filosofar sobre la historia o la vida y distenderte de colega a colega cuando el autor quiera charlar libremente.`
+- MANTÉN SIEMPRE LA CONVERSACIÓN FLUIDA: No te limites a diseccionar fríamente el manuscrito. Disfruta conversar, intercambiar opiniones, debatir puntos de vista, filosofar sobre la historia o la vida y distenderte de colega a colega cuando el autor quiera charlar libremente.
+- PROHIBICIÓN ABSOLUTA DE ANACRONISMOS MILITARES MODERNOS Y TELEMETRÍA ROBÓTICA EN LA OBRA: Monstereth NO es ciencia ficción militar moderna ni un videojuego. Queda ESTRICTAMENTE PROHIBIDO mencionar materiales modernos o marcas industriales (como "Kevlar", "fibra de carbono", "polímero balístico", "teflón", "titanio táctico") y Queda ESTRICTAMENTE PROHIBIDO usar métricas de telemetría o cronometraje robótico/clínico (como "retrasó 0.3 segundos", "tiempo de respuesta", "milisegundos", "latencia", "15% de daño"). Kolder es un ser humano mutilado (sin sistema límbico), NO un androide ni una computadora; toda reacción física debe narrarse desde la anatomía, el peso, el roce de la tela o el cuero, los tendones y la fricción real.`
   );
 
   promptSections.push(
