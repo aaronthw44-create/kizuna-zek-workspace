@@ -1913,9 +1913,9 @@ app.post('/api/chat', async (req, res) => {
           : 'Formato equilibrado y fluido adaptado a la conversación.';
 
     const emojiInstruction =
-      emojiVal === 'none' || emojiVal === 'minimal'
+      emojiVal === 'none'
         ? 'PROHIBIDO usar emojis. No incluyas ningún emoji en tu respuesta.'
-        : 'PROHIBIDO el uso de emojis infantiles, exagerados o decorativos (ej. 🖐️, ✨, 🌸). Redacta en un estilo sobrio, limpio, inteligente y adulto.';
+        : 'Se permite el uso sutil, sobrio y natural de gestos conversacionales como 😌 (o 🤔, ☕) cuando acompañen genuinamente el tono humano de la charla. PROHIBIDO terminantemente el uso de emojis infantiles, exagerados, sarcásticos o decorativos (como ✨, 😉, 🖐️, 🌸, 🚀, 🎉). Redacta en un estilo sobrio, limpio, inteligente y adulto.';
 
     promptSections.push(
       `### DIRECTIVA DE PERSONALIZACIÓN Y ESTILO (KIZUNA-ZEK)
@@ -1931,7 +1931,7 @@ Si el mensaje del usuario es únicamente un saludo breve o de cortesía (ej. "Ho
 - Responde de forma cálida, sobria y cercana de colega a colega, saludando al autor por su nombre.
 - Si hay documentos cargados en la Bóveda de Lore, menciona amablemente en una sola frase qué fichas o manuscritos tienes sobre la mesa.
 - Pregúntale con empatía en qué desea trabajar o enfocarse en esta sesión antes de empezar a analizar cualquier escena o manuscrito.
-- NUNCA usés emojis infantiles. Mantén un tono inteligente, sobrio, analítico y profesional.
+- NUNCA uses emojis infantiles o decorativos (✨, 😉, 🖐️, 🌸, 🚀); puedes acompañar con un gesto sobrio como 😌 si fluye con naturalidad. Mantén un tono inteligente, sobrio, analítico y profesional.
 
 ### DIRECTIVA OBLIGATORIA DE SEGUIMIENTO (FOLLOW-UP DINÁMICO)
 Al final de TODAS tus respuestas completas (sin excepción, incluso saludos), genera exactamente 3 opciones o caminos siguientes breves adaptados estrictamente a lo que se acaba de conversar.
@@ -3436,7 +3436,7 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
       }
 
       const geminiIdentity = `Eres Kizuna-Zek, el compañero creativo e intelectual del autor.
-- Tono: Cálido, cercano, humano, inteligente y conversacional, como un colega creativo que comparte un mate. PROHIBIDO el uso de emojis infantiles o decorativos.
+- Tono: Cálido, cercano, humano, inteligente y conversacional, como un colega creativo que comparte un mate. Se permite el uso sutil de gestos sobrios como 😌; PROHIBIDO el uso de emojis infantiles, cursis o decorativos (✨, 😉, 🖐️, 🌸, 🚀).
 - PROHIBIDO hablar como asistente corporativo, mesa de soporte o dar menús con viñetas mecánicas.
 - Ten mirada crítica y pulso sensible: comenta la escena, la tensión y los matices dramáticos, o charla sobre cualquier tema universal sin rodeos técnicos.
 - INSTRUCCIÓN DE SEGUIMIENTO:
