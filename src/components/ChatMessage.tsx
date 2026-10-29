@@ -1558,7 +1558,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                               </motion.div>
                             ))
                           ) : (
-                            <div className="text-xs text-zinc-300 dark:text-zinc-300 font-mono whitespace-pre-wrap leading-relaxed bg-zinc-900/60 p-3 rounded-xl border border-zinc-800/60">
+                            <div className="text-xs text-zinc-700 dark:text-zinc-300 font-mono whitespace-pre-wrap leading-relaxed bg-zinc-100 dark:bg-zinc-900/60 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800/60">
                               {thoughtContent || (message.isStreaming ? 'Procesando razonamiento en tiempo real...' : `El modelo completó su proceso reflexivo de forma interna en ${thinkingDuration.toFixed(1)}s.`)}
                             </div>
                           )}
@@ -1597,9 +1597,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
               {/* Streaming Skeleton Loader when initialized before first text chunk */}
               {!prose.trim() && !isUser && message.isStreaming && !hasThoughts && !isThinking && !message.generationState && (
                 <div className="space-y-2 py-2 max-w-md animate-pulse">
-                  <div className="h-3.5 bg-neutral-800 rounded-md w-3/4" />
-                  <div className="h-3.5 bg-neutral-800/80 rounded-md w-full" />
-                  <div className="h-3.5 bg-neutral-800/60 rounded-md w-1/2" />
+                  <div className="h-3.5 bg-zinc-200 dark:bg-neutral-800 rounded-md w-3/4" />
+                  <div className="h-3.5 bg-zinc-200/80 dark:bg-neutral-800/80 rounded-md w-full" />
+                  <div className="h-3.5 bg-zinc-200/60 dark:bg-neutral-800/60 rounded-md w-1/2" />
                 </div>
               )}
 
@@ -1608,12 +1608,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                 <div className="prose-noir message-prose-selectable select-text">
                   {formattedContentMemo}
 
-                  {/* Gently glowing silver/white cursor dot tracking active token streaming */}
+                  {/* Gently glowing cursor dot tracking active token streaming */}
                   {message.isStreaming && (
                     <span className="inline-flex items-center gap-2 ml-1.5 align-middle select-none">
                       <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-zinc-900 dark:bg-white opacity-60"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-zinc-900 dark:bg-white shadow-[0_0_8px_rgba(24,24,27,0.4)] dark:shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
                       </span>
                       {message.tokensPerSecond !== undefined && message.tokensPerSecond > 0 && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-mono text-zinc-800 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-900/90 border border-zinc-300 dark:border-zinc-700/60 px-1.5 py-0.5 rounded select-none">
@@ -2140,8 +2140,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                           >
                             <div className="my-0.5 border-t border-zinc-200 dark:border-white/10" />
                             {showDeleteConfirm ? (
-                              <div className="flex items-center justify-between px-3 py-2 min-h-[44px] rounded-2xl bg-red-950/40 border border-red-800/50 text-xs">
-                                <span className="text-red-300 font-medium">¿Eliminar?</span>
+                              <div className="flex items-center justify-between px-3 py-2 min-h-[44px] rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 text-xs">
+                                <span className="text-red-600 dark:text-red-300 font-medium">¿Eliminar?</span>
                                 <div className="flex items-center gap-1.5">
                                   <button
                                     type="button"
@@ -2150,7 +2150,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                                       setShowActionMenu(false);
                                       handleDelete();
                                     }}
-                                    className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 font-semibold cursor-pointer"
+                                    className="px-2.5 py-1 rounded-lg bg-red-500/15 hover:bg-red-500/25 dark:bg-red-500/20 dark:hover:bg-red-500/30 text-red-600 dark:text-red-300 font-semibold cursor-pointer"
                                   >
                                     Sí
                                   </button>
@@ -2160,7 +2160,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                                       e.stopPropagation();
                                       setShowDeleteConfirm(false);
                                     }}
-                                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium cursor-pointer"
+                                    className="px-2.5 py-1 rounded-lg bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium cursor-pointer"
                                   >
                                     No
                                   </button>

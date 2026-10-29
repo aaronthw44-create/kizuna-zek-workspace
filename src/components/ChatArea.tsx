@@ -245,7 +245,7 @@ export const ChatArea = React.memo(
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="sticky top-3 z-40 mx-auto max-w-md px-4 py-2 bg-[#0e0e12] border border-white/20 text-white rounded-lg shadow-2xl flex items-center gap-2.5 text-xs"
+            className="sticky top-3 z-40 mx-auto max-w-md px-4 py-2 bg-zinc-900 dark:bg-[#0e0e12] border border-zinc-700 dark:border-white/20 text-white rounded-lg shadow-xl dark:shadow-2xl flex items-center gap-2.5 text-xs"
           >
             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
             <span className="truncate flex-1 font-medium">{toastMessage}</span>
@@ -312,7 +312,7 @@ export const ChatArea = React.memo(
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             whileTap={{ scale: 0.9 }}
             onClick={scrollToBottom}
-            className="fixed bottom-24 right-6 sm:right-10 z-40 p-2.5 bg-[#121216] hover:bg-[#1c1c22] border border-[#26262a] text-white rounded-full shadow-2xl transition-colors flex items-center gap-1.5 text-xs font-mono"
+            className="fixed bottom-24 right-6 sm:right-10 z-40 p-2.5 bg-white dark:bg-[#121216] hover:bg-zinc-100 dark:hover:bg-[#1c1c22] border border-zinc-200 dark:border-[#26262a] text-zinc-800 dark:text-white rounded-full shadow-lg dark:shadow-2xl transition-colors flex items-center gap-1.5 text-xs font-mono cursor-pointer"
             title="Ir al último mensaje"
           >
             <ArrowDown size={14} />

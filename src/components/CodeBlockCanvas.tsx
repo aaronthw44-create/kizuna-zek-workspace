@@ -123,15 +123,15 @@ export const CodeBlockCanvas: React.FC<CodeBlockCanvasProps> = ({
   return (
     <>
       {/* Primary Embedded Card Container */}
-      <div className="my-3.5 rounded-xl border border-zinc-200/80 dark:border-[#202026] bg-[#08080b] overflow-hidden text-white shadow-xl group/card transition-all hover:border-[#32323f]">
+      <div className="my-3.5 rounded-xl border border-zinc-200 dark:border-[#202026] bg-zinc-50 dark:bg-[#08080b] overflow-hidden text-zinc-900 dark:text-white shadow-sm dark:shadow-xl group/card transition-all hover:border-zinc-300 dark:hover:border-[#32323f]">
         {/* Card Header Bar */}
-        <div className="flex items-center justify-between px-3.5 py-2 bg-[#0e0e12] border-b border-[#181820] text-xs font-mono text-zinc-300 select-none">
+        <div className="flex items-center justify-between px-3.5 py-2 bg-zinc-100/90 dark:bg-[#0e0e12] border-b border-zinc-200 dark:border-[#181820] text-xs font-mono text-zinc-700 dark:text-zinc-300 select-none">
           <div className="flex items-center gap-2 min-w-0">
             {getLangIcon(cleanLang)}
-            <span className="font-semibold text-zinc-200 tracking-wide uppercase text-[11px]">
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200 tracking-wide uppercase text-[11px]">
               {cleanLang || 'código'}
             </span>
-            <span className="text-zinc-600 dark:text-zinc-500 font-mono text-[10px]">
+            <span className="text-zinc-500 dark:text-zinc-500 font-mono text-[10px]">
               ({lineCount} {lineCount === 1 ? 'línea' : 'líneas'} · {wordCount} palabras)
             </span>
           </div>
@@ -139,12 +139,14 @@ export const CodeBlockCanvas: React.FC<CodeBlockCanvasProps> = ({
           <div className="flex items-center gap-1">
             {/* HTML Live Preview Tab Switcher */}
             {isHtml && (
-              <div className="flex items-center p-0.5 rounded-lg bg-[#14141a] border border-[#22222c] mr-1.5">
+              <div className="flex items-center p-0.5 rounded-lg bg-zinc-200/70 dark:bg-[#14141a] border border-zinc-300 dark:border-[#22222c] mr-1.5">
                 <button
                   type="button"
                   onClick={() => setActiveTab('code')}
                   className={`px-2 py-0.5 rounded-md text-[10px] font-mono transition-colors cursor-pointer ${
-                    activeTab === 'code' ? 'bg-[#22222c] text-white font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+                    activeTab === 'code'
+                      ? 'bg-white dark:bg-[#22222c] text-zinc-900 dark:text-white font-semibold shadow-2xs'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                   }`}
                 >
                   Código
@@ -153,10 +155,12 @@ export const CodeBlockCanvas: React.FC<CodeBlockCanvasProps> = ({
                   type="button"
                   onClick={() => setActiveTab('preview')}
                   className={`px-2 py-0.5 rounded-md text-[10px] font-mono transition-colors cursor-pointer flex items-center gap-1 ${
-                    activeTab === 'preview' ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30' : 'text-zinc-400 hover:text-zinc-200'
+                    activeTab === 'preview'
+                      ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-semibold border border-cyan-500/30'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                   }`}
                 >
-                  <Play size={10} className="text-cyan-400 fill-cyan-400" />
+                  <Play size={10} className="text-cyan-600 dark:text-cyan-400 fill-cyan-600 dark:fill-cyan-400" />
                   <span>Probar</span>
                 </button>
               </div>
@@ -166,17 +170,17 @@ export const CodeBlockCanvas: React.FC<CodeBlockCanvasProps> = ({
             <button
               type="button"
               onClick={handleCopy}
-              className="p-1.5 hover:bg-white/10 hover:text-white rounded-lg text-zinc-400 text-xs font-mono transition-colors cursor-pointer flex items-center gap-1"
+              className="p-1.5 hover:bg-zinc-200/80 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white rounded-lg text-zinc-600 dark:text-zinc-400 text-xs font-mono transition-colors cursor-pointer flex items-center gap-1"
               title="Copiar contenido"
             >
-              {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+              {copied ? <Check size={13} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={13} />}
               <span className="hidden sm:inline text-[11px]">{copied ? 'Copiado' : 'Copiar'}</span>
             </button>
 
             <button
               type="button"
               onClick={handleDownload}
-              className="p-1.5 hover:bg-white/10 hover:text-white rounded-lg text-zinc-400 transition-colors cursor-pointer"
+              className="p-1.5 hover:bg-zinc-200/80 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors cursor-pointer"
               title="Descargar archivo"
             >
               <Download size={13} />
@@ -185,7 +189,7 @@ export const CodeBlockCanvas: React.FC<CodeBlockCanvasProps> = ({
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="p-1.5 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-300 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+              className="p-1.5 hover:bg-amber-500/15 dark:hover:bg-amber-500/20 text-zinc-600 dark:text-zinc-400 hover:text-amber-700 dark:hover:text-amber-300 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
               title="Abrir en Canvas a pantalla completa"
             >
               <Maximize2 size={13} />
@@ -205,8 +209,8 @@ export const CodeBlockCanvas: React.FC<CodeBlockCanvasProps> = ({
             />
           </div>
         ) : (
-          <div className="relative overflow-x-auto p-3.5 text-xs font-mono text-zinc-100 leading-relaxed bg-[#060608] smooth-scroll max-h-96">
-            <pre className="font-mono text-[13px] leading-relaxed">
+          <div className="relative overflow-x-auto p-3.5 text-xs font-mono text-zinc-800 dark:text-zinc-100 leading-relaxed bg-zinc-50 dark:bg-[#060608] smooth-scroll max-h-96">
+            <pre className="font-mono text-[13px] leading-relaxed !m-0 !p-0 !border-none !bg-transparent">
               <code>{codeString}</code>
             </pre>
           </div>

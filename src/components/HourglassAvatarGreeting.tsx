@@ -163,13 +163,13 @@ export const HourglassAvatarGreeting: React.FC<HourglassAvatarGreetingProps> = (
 
       {/* Typewriter Greeting Title */}
       <div className="min-h-[56px] flex items-center justify-center mb-4 px-2">
-        <h1 className="greeting-title-text text-xl sm:text-2xl font-bold tracking-tight text-white leading-snug font-sans">
+        <h1 className="greeting-title-text text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-white leading-snug font-sans">
           <span>{displayedText}</span>
           {!isTypingComplete && (
             <motion.span
               animate={{ opacity: [1, 0, 1] }}
               transition={{ duration: 0.8, repeat: Infinity }}
-              className="inline-block w-2 h-5 sm:h-6 ml-1 bg-zinc-300 rounded-xs align-middle"
+              className="inline-block w-2 h-5 sm:h-6 ml-1 bg-zinc-700 dark:bg-zinc-300 rounded-xs align-middle"
             />
           )}
         </h1>
@@ -182,20 +182,20 @@ export const HourglassAvatarGreeting: React.FC<HourglassAvatarGreetingProps> = (
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           onClick={onOpenFolderManager}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0c0c10] border border-[#22222a] hover:border-zinc-600 rounded-full text-xs text-[#a1a1aa] hover:text-white cursor-pointer transition-all shadow-md mb-6"
+          className="flex items-center gap-2 px-4 py-2 bg-zinc-100 hover:bg-zinc-200/70 dark:bg-[#0c0c10] border border-zinc-200 dark:border-[#22222a] hover:border-zinc-300 dark:hover:border-zinc-600 rounded-full text-xs text-zinc-600 dark:text-[#a1a1aa] hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-all shadow-xs dark:shadow-md mb-6"
           title="Click para ver directivas y lore del arco"
         >
-          <Feather size={13} className="text-zinc-300 shrink-0" />
+          <Feather size={13} className="text-zinc-600 dark:text-zinc-300 shrink-0" />
           <span>Arco activo:</span>
-          <span className="font-semibold text-white truncate max-w-[180px] sm:max-w-[240px]">{folder.name}</span>
-          <span className="text-zinc-600">·</span>
-          <span className="font-mono text-[11px] text-zinc-300">
+          <span className="font-semibold text-zinc-900 dark:text-white truncate max-w-[180px] sm:max-w-[240px]">{folder.name}</span>
+          <span className="text-zinc-400 dark:text-zinc-600">·</span>
+          <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300">
             {activeLoreFilesCount} docs en lore
           </span>
         </motion.div>
       )}
 
-      {/* Sleek Action Pills Row (Kimi Style Monochromatic Noir) */}
+      {/* Sleek Action Pills Row (Kimi Style Monochromatic Noir & Crisp Day Mode) */}
       <div className="w-full flex items-center justify-center gap-2 flex-wrap mb-2">
         <motion.button
           whileTap={{ scale: 0.95 }}
@@ -205,9 +205,9 @@ export const HourglassAvatarGreeting: React.FC<HourglassAvatarGreetingProps> = (
               'Desarrollemos una escena enfocada en presencia y regulación somática: silencios compartidos, micro-detalles sensoriales (tacto, temperatura, respiración) y contención sin explicaciones clínicas ni clichés.'
             )
           }
-          className="group flex items-center gap-2 px-3.5 py-2 bg-[#0e0e12] hover:bg-[#16161d] border border-[#22222a] hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-300 hover:text-white transition-all shadow-sm cursor-pointer"
+          className="group flex items-center gap-2 px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-[#0e0e12] dark:hover:bg-[#16161d] border border-zinc-200 dark:border-[#22222a] hover:border-zinc-300 dark:hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-all shadow-xs cursor-pointer"
         >
-          <Sparkles size={13} className="text-zinc-400 group-hover:text-zinc-200 shrink-0 transition-colors" />
+          <Sparkles size={13} className="text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 shrink-0 transition-colors" />
           <span>Regulación Somática</span>
         </motion.button>
 
@@ -219,9 +219,9 @@ export const HourglassAvatarGreeting: React.FC<HourglassAvatarGreetingProps> = (
               'Escribamos un diálogo con fuerte subtexto que contraste una voz con armadura teatral dramática frente a una respuesta analítica, contenida y deadpan.'
             )
           }
-          className="group flex items-center gap-2 px-3.5 py-2 bg-[#0e0e12] hover:bg-[#16161d] border border-[#22222a] hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-300 hover:text-white transition-all shadow-sm cursor-pointer"
+          className="group flex items-center gap-2 px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-[#0e0e12] dark:hover:bg-[#16161d] border border-zinc-200 dark:border-[#22222a] hover:border-zinc-300 dark:hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-all shadow-xs cursor-pointer"
         >
-          <FileText size={13} className="text-zinc-400 group-hover:text-zinc-200 shrink-0 transition-colors" />
+          <FileText size={13} className="text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 shrink-0 transition-colors" />
           <span>Subtexto & Máscaras</span>
         </motion.button>
 
@@ -233,9 +233,9 @@ export const HourglassAvatarGreeting: React.FC<HourglassAvatarGreetingProps> = (
               'Estructuremos una escena de combate o sobrecarga bioenergética. Mantén la tensión física, el riesgo somático y la narrativa viva sin porcentajes numéricos.'
             )
           }
-          className="group flex items-center gap-2 px-3.5 py-2 bg-[#0e0e12] hover:bg-[#16161d] border border-[#22222a] hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-300 hover:text-white transition-all shadow-sm cursor-pointer"
+          className="group flex items-center gap-2 px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-[#0e0e12] dark:hover:bg-[#16161d] border border-zinc-200 dark:border-[#22222a] hover:border-zinc-300 dark:hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-all shadow-xs cursor-pointer"
         >
-          <BookOpen size={13} className="text-zinc-400 group-hover:text-zinc-200 shrink-0 transition-colors" />
+          <BookOpen size={13} className="text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 shrink-0 transition-colors" />
           <span>Resonancia & Combate</span>
         </motion.button>
 
@@ -245,9 +245,9 @@ export const HourglassAvatarGreeting: React.FC<HourglassAvatarGreetingProps> = (
           onClick={() => {
             if (onAuditScene) onAuditScene();
           }}
-          className="group flex items-center gap-2 px-3.5 py-2 bg-[#0e0e12] hover:bg-[#16161d] border border-[#22222a] hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-300 hover:text-white transition-all shadow-sm cursor-pointer"
+          className="group flex items-center gap-2 px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200/80 dark:bg-[#0e0e12] dark:hover:bg-[#16161d] border border-zinc-200 dark:border-[#22222a] hover:border-zinc-300 dark:hover:border-zinc-600 rounded-full text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-all shadow-xs cursor-pointer"
         >
-          <Feather size={13} className="text-zinc-400 group-hover:text-zinc-200 shrink-0 transition-colors" />
+          <Feather size={13} className="text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-800 dark:group-hover:text-zinc-200 shrink-0 transition-colors" />
           <span>Auditar Lore</span>
         </motion.button>
       </div>

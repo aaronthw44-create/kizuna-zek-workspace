@@ -1442,8 +1442,8 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
           }}
           className={`w-9 h-9 min-w-[36px] min-h-[36px] rounded-full transition-colors duration-200 shrink-0 flex items-center justify-center cursor-pointer select-none ${
             anyPopoverOpen
-              ? 'bg-white text-black shadow-lg'
-              : 'bg-[#1e1e28] text-zinc-200 hover:text-white hover:bg-[#292938]'
+              ? 'bg-zinc-900 text-white dark:bg-white dark:text-black shadow-lg'
+              : 'bg-zinc-200/80 text-zinc-700 hover:text-zinc-950 hover:bg-zinc-300/80 dark:bg-[#1e1e28] dark:text-zinc-200 dark:hover:text-white dark:hover:bg-[#292938]'
           }`}
           title={anyPopoverOpen ? 'Cerrar menú (×)' : 'Opciones de adjuntos e imágenes (+)'}
           aria-label="Adjuntar archivo o imagen"
@@ -1476,7 +1476,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 14, scale: 0.88 }}
                 transition={{ type: 'spring', stiffness: 390, damping: 20, mass: 0.72 }}
-                className="absolute bottom-full left-0 mb-3 z-50 w-[252px] max-w-[88vw] p-2 rounded-[26px] bg-[#13131a]/95 border border-white/12 shadow-[0_20px_50px_rgba(0,0,0,0.78)] backdrop-blur-2xl select-none origin-bottom-left"
+                className="absolute bottom-full left-0 mb-3 z-50 w-[252px] max-w-[88vw] p-2 rounded-[26px] bg-white/95 dark:bg-[#13131a]/95 border border-zinc-200 dark:border-white/12 shadow-[0_14px_38px_rgba(0,0,0,0.14)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.78)] backdrop-blur-2xl select-none origin-bottom-left"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col gap-1">
@@ -1500,7 +1500,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={item.onClick}
-                        className="flex items-center gap-3.5 px-2.5 py-2 min-h-[44px] rounded-2xl hover:bg-white/[0.08] transition-colors text-left group cursor-pointer origin-center"
+                        className="flex items-center gap-3.5 px-2.5 py-2 min-h-[44px] rounded-2xl hover:bg-zinc-100 dark:hover:bg-white/[0.08] transition-colors text-left group cursor-pointer origin-center"
                       >
                         <motion.div
                           initial={{ opacity: 0, scale: 0.45 }}
@@ -1511,12 +1511,12 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                             damping: 17,
                             delay: staggerDelay + 0.02,
                           }}
-                          className="w-9 h-9 rounded-full bg-white/[0.08] border border-white/[0.08] flex items-center justify-center shrink-0 text-zinc-100 group-hover:bg-white/[0.14] group-hover:scale-105 transition-all origin-center"
+                          className="w-9 h-9 rounded-full bg-zinc-100 dark:bg-white/[0.08] border border-zinc-200/80 dark:border-white/[0.08] flex items-center justify-center shrink-0 text-zinc-700 dark:text-zinc-100 group-hover:bg-zinc-200/80 dark:group-hover:bg-white/[0.14] group-hover:scale-105 transition-all origin-center"
                         >
                           {item.icon}
                         </motion.div>
                         <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
-                          <span className="text-[14.5px] font-medium text-zinc-100 group-hover:text-white truncate">
+                          <span className="text-[14.5px] font-medium text-zinc-800 dark:text-zinc-100 group-hover:text-zinc-950 dark:group-hover:text-white truncate">
                             {item.label}
                           </span>
                           <span className="text-[10px] text-zinc-500 font-mono shrink-0">{item.sub}</span>
@@ -2237,21 +2237,21 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
             <motion.div
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between gap-2 px-3 py-1.5 mb-2 bg-[#121218] border border-amber-500/35 rounded-2xl text-xs text-amber-200 shadow-md"
+              className="flex items-center justify-between gap-2 px-3 py-1.5 mb-2 bg-amber-50 dark:bg-[#121218] border border-amber-300 dark:border-amber-500/35 rounded-2xl text-xs text-amber-900 dark:text-amber-200 shadow-sm dark:shadow-md"
             >
               <div className="flex items-center gap-1.5 min-w-0">
-                <Zap size={14} className="text-amber-400 shrink-0" />
-                <span className="font-mono text-[11px] truncate text-amber-300">
+                <Zap size={14} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="font-mono text-[11px] truncate text-amber-800 dark:text-amber-300">
                   Escudo de Cuota: {text.length.toLocaleString()} caract. (~{Math.round(text.length / 4)} tokens)
                 </span>
               </div>
               <button
                 type="button"
                 onClick={handleCondenseCurrentText}
-                className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/40 text-amber-200 rounded-xl text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer active:scale-95 shrink-0"
+                className="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-amber-500/20 dark:hover:bg-amber-500/35 border border-amber-500/40 text-amber-900 dark:text-amber-200 rounded-xl text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer active:scale-95 shrink-0"
                 title="Sintetizar texto a Ficha de Canon para ahorrar 85% de tokens de API"
               >
-                <Sparkles size={12} className="text-amber-300" />
+                <Sparkles size={12} className="text-amber-600 dark:text-amber-300" />
                 <span>Sintetizar a Canon (-85% Cuota)</span>
               </button>
             </motion.div>
@@ -2274,7 +2274,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                 type="button"
                 onClick={() => stopActiveDictationWithAction('cancel')}
                 disabled={isTranscribingAsr}
-                className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-white/[0.1] md:hover:bg-white/[0.18] active:bg-white/[0.24] text-zinc-200 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer touch-manipulation disabled:opacity-40"
+                className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-200/80 md:hover:bg-zinc-300/80 active:bg-zinc-300 dark:bg-white/[0.1] dark:md:hover:bg-white/[0.18] dark:active:bg-white/[0.24] text-zinc-700 hover:text-zinc-950 dark:text-zinc-200 dark:hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer touch-manipulation disabled:opacity-40"
                 title="Cancelar grabación"
                 aria-label="Cancelar grabación"
               >
@@ -2284,8 +2284,8 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
               {/* Center: Ondas acústicas reactivas en tiempo real estilo ChatGPT */}
               <div className="flex-1 min-w-0 h-[34px] px-2 flex items-center justify-center overflow-hidden select-none">
                 {isTranscribingAsr ? (
-                  <div className="flex items-center gap-2 text-xs text-zinc-300 font-medium tracking-wide">
-                    <Loader2 size={14} className="animate-spin text-white/80" />
+                  <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 font-medium tracking-wide">
+                    <Loader2 size={14} className="animate-spin text-zinc-700 dark:text-white/80" />
                     <span>Transcribiendo...</span>
                   </div>
                 ) : (
@@ -2295,7 +2295,9 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                         key={idx}
                         style={{ height: `${barHeight}px` }}
                         className={`w-[2.5px] rounded-full transition-[height,opacity] duration-75 ease-out shrink-0 ${
-                          barHeight > 4 ? 'bg-white opacity-95' : 'bg-white/45 opacity-70'
+                          barHeight > 4
+                            ? 'bg-zinc-900 dark:bg-white opacity-95'
+                            : 'bg-zinc-400 dark:bg-white/45 opacity-70'
                         }`}
                       />
                     ))}
@@ -2309,11 +2311,11 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                   type="button"
                   onClick={() => stopActiveDictationWithAction('insert')}
                   disabled={isTranscribingAsr}
-                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-white/[0.14] md:hover:bg-white/[0.22] active:bg-white/[0.28] text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer touch-manipulation disabled:opacity-40"
+                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-200/80 md:hover:bg-zinc-300/80 active:bg-zinc-300 dark:bg-white/[0.14] dark:md:hover:bg-white/[0.22] dark:active:bg-white/[0.28] text-zinc-900 dark:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer touch-manipulation disabled:opacity-40"
                   title="Detener y pasar texto al cuadro de escritura"
                   aria-label="Detener grabación y editar texto"
                 >
-                  <Square size={12} fill="white" className="pointer-events-none" />
+                  <Square size={12} fill="currentColor" className="pointer-events-none" />
                 </button>
 
                 <motion.button
@@ -2321,7 +2323,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                   type="button"
                   onClick={() => stopActiveDictationWithAction('send')}
                   disabled={isTranscribingAsr}
-                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-white text-black md:hover:bg-zinc-200 active:bg-zinc-300 flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-sm touch-manipulation disabled:opacity-50"
+                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-900 text-white md:hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:md:hover:bg-zinc-200 dark:active:bg-zinc-300 flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-sm touch-manipulation disabled:opacity-50"
                   title="Detener y enviar mensaje"
                   aria-label="Enviar mensaje por voz"
                 >
@@ -2373,7 +2375,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
                       type="button"
                       onClick={toggleListening}
-                      className="h-[38px] rounded-full shrink-0 flex items-center justify-center cursor-pointer select-none overflow-hidden touch-manipulation transition-colors duration-150 bg-transparent text-zinc-400 md:hover:text-white md:hover:bg-white/[0.07] active:bg-white/[0.12] active:text-white"
+                      className="h-[38px] rounded-full shrink-0 flex items-center justify-center cursor-pointer select-none overflow-hidden touch-manipulation transition-colors duration-150 bg-transparent text-zinc-500 dark:text-zinc-400 md:hover:text-zinc-900 dark:md:hover:text-white md:hover:bg-zinc-200/70 dark:md:hover:bg-white/[0.07] active:bg-zinc-200 dark:active:bg-white/[0.12] active:text-zinc-900 dark:active:text-white"
                       title="Dictado por voz"
                     >
                       <Mic size={18} strokeWidth={2} className="pointer-events-none shrink-0" />
@@ -2381,7 +2383,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                   )}
                 </AnimatePresence>
 
-                {/* Círculo blanco persistente (Ondas Acústicas <-> Flecha Enviar <-> Detener) */}
+                {/* Círculo primario persistente (Ondas Acústicas <-> Flecha Enviar <-> Detener) */}
                 <motion.button
                   key="primary-circle-action-btn"
                   whileTap={{ scale: 0.91 }}
@@ -2398,7 +2400,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                       toggleListening();
                     }
                   }}
-                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-white text-black md:hover:bg-zinc-200 active:bg-zinc-300 transition-colors duration-150 cursor-pointer select-none shadow-sm shrink-0 flex items-center justify-center touch-manipulation relative overflow-hidden"
+                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-900 text-white md:hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:md:hover:bg-zinc-200 dark:active:bg-zinc-300 transition-colors duration-150 cursor-pointer select-none shadow-sm shrink-0 flex items-center justify-center touch-manipulation relative overflow-hidden"
                   title={
                     isStreaming
                       ? 'Detener generación'
@@ -2424,7 +2426,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                         transition={{ duration: 0.14, ease: 'easeOut' }}
                         className="flex items-center justify-center pointer-events-none"
                       >
-                        <Square size={13} fill="black" />
+                        <Square size={13} fill="currentColor" />
                       </motion.span>
                     ) : text.trim() || attachments.length > 0 ? (
                       <motion.span

@@ -13,12 +13,12 @@ export interface WikiVisualMatch {
 // Global in-memory + sessionStorage cache so each term is fetched at most once per session
 const wikiCache = new Map<string, WikiVisualMatch | null>();
 const inflightRequests = new Map<string, Promise<WikiVisualMatch | null>>();
-const SESSION_CACHE_PREFIX = 'kizuna_wiki_summary_v6:';
+const SESSION_CACHE_PREFIX = 'kizuna_wiki_summary_v7:';
 const WIKI_HEADERS: HeadersInit = {
   Accept: 'application/json',
 };
 
-// Purge legacy sessionStorage keys from v2/v3/v4/v5
+// Purge legacy sessionStorage keys from v2..v6
 try {
   if (typeof sessionStorage !== 'undefined') {
     for (let i = sessionStorage.length - 1; i >= 0; i--) {
@@ -28,7 +28,8 @@ try {
         (k.startsWith('kizuna_wiki_summary_v2:') ||
           k.startsWith('kizuna_wiki_summary_v3:') ||
           k.startsWith('kizuna_wiki_summary_v4:') ||
-          k.startsWith('kizuna_wiki_summary_v5:'))
+          k.startsWith('kizuna_wiki_summary_v5:') ||
+          k.startsWith('kizuna_wiki_summary_v6:'))
       ) {
         sessionStorage.removeItem(k);
       }
@@ -66,7 +67,7 @@ function writeSessionCache(key: string, value: WikiVisualMatch | null): void {
   }
 }
 
-// Headings that are structural/conversational/creative-writing/editorial markers and should NEVER query Wikipedia on their own
+// Headings that are structural/conversational/creative-writing/editorial/somatic markers and should NEVER query Wikipedia on their own
 const GENERIC_HEADING_STOPWORDS = new Set([
   'introduccion',
   'conclusion',
@@ -157,6 +158,9 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'dialogo',
   'dialogos',
   'narrativa',
+  'narrativo',
+  'narrativos',
+  'narrativas',
   'narrador',
   'borrador',
   'correccion',
@@ -221,6 +225,87 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'bloques',
   'mea',
   'culpa',
+  'somatico',
+  'somatica',
+  'somaticos',
+  'somaticas',
+  'sensorial',
+  'sensoriales',
+  'silencio',
+  'silencios',
+  'pausa',
+  'pausas',
+  'gesto',
+  'gestos',
+  'mirada',
+  'miradas',
+  'cuerpo',
+  'cuerpos',
+  'voz',
+  'voces',
+  'presencia',
+  'contencion',
+  'regulacion',
+  'vulnerabilidad',
+  'tension',
+  'atmosfera',
+  'inmersion',
+  'verosimilitud',
+  'cliche',
+  'cliches',
+  'tropo',
+  'tropos',
+  'impacto',
+  'efecto',
+  'peso',
+  'economia',
+  'arquitectura',
+  'contraste',
+  'uso',
+  'funcion',
+  'sentido',
+  'valor',
+  'fuerza',
+  'herida',
+  'cicatriz',
+  'sombra',
+  'mascara',
+  'espejo',
+  'umbral',
+  'abismo',
+  'vacio',
+  'eco',
+  'despertar',
+  'caida',
+  'redencion',
+  'traicion',
+  'lealtad',
+  'soledad',
+  'dolor',
+  'miedo',
+  'calma',
+  'frio',
+  'calor',
+  'tunel',
+  'puente',
+  'maquina',
+  'expendedora',
+  'ciego',
+  'ciega',
+  'cotidiano',
+  'cotidiana',
+  'cotidianos',
+  'cotidianas',
+  'emocional',
+  'emocionales',
+  'psicologico',
+  'psicologica',
+  'literario',
+  'literaria',
+  'prosa',
+  'escenografia',
+  'simbolismo',
+  'metafora',
 ]);
 
 // Conversational / 2nd-person verbs & pronouns that disqualify a candidate phrase
@@ -256,6 +341,9 @@ const CONVERSATIONAL_CANDIDATE_TOKENS = new Set([
   'mejorar',
   'evitar',
   'aplicar',
+  'funciona',
+  'importa',
+  'significa',
 ]);
 
 // Fictional canon entities from Monstereth so we don't query real-world Wikipedia for them
@@ -302,6 +390,28 @@ function normalizeText(str: string): string {
     .trim();
 }
 
+function hasProperCapitalizationOrQuotes(phrase: string): boolean {
+  if (/[«"“][^»"”]+[»"”]/.test(phrase)) return true;
+  if (/\b\d{4}\b/.test(phrase)) return true;
+  const words = phrase
+    .replace(/^[\dIVXLCDM]+[\.\)\-:]\s*/i, '')
+    .replace(/^[¿¡]+/, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (words.length === 1) {
+    return /^[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{3,}$/.test(words[0]);
+  }
+  // Check if any word AFTER the first word starts with an uppercase letter (e.g. "Fiódor Dostoyevski", "Síndrome de Estocolmo", "Noche de los Bastones Largos")
+  for (let i = 1; i < words.length; i++) {
+    const cleanW = words[i].replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñÜü]+|[^A-Za-zÁÉÍÓÚáéíóúÑñÜü]+$/g, '');
+    if (cleanW.length >= 2 && /^[A-ZÁÉÍÓÚÑÜ]/.test(cleanW)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isCleanEncyclopedicPhrase(phrase: string): boolean {
   const norm = normalizeText(phrase);
   if (!norm) return false;
@@ -318,7 +428,7 @@ function isCleanEncyclopedicPhrase(phrase: string): boolean {
   const meaningful = words.filter((w) => !TOKEN_STOPWORDS.has(w) && w.length >= 2);
   if (meaningful.length === 0) return false;
 
-  // Reject if any meaningful word is a core critique/workshop rubric word
+  // Reject if any meaningful word is a core critique/workshop/somatic rubric word
   if (meaningful.some((w) => GENERIC_HEADING_STOPWORDS.has(w))) return false;
 
   return true;
@@ -475,10 +585,27 @@ function areTokensEquivalent(a: string, b: string): boolean {
   return false;
 }
 
+function areTokensInSameOrder(source: string[], target: string[]): boolean {
+  let targetIdx = 0;
+  for (const s of source) {
+    let found = false;
+    while (targetIdx < target.length) {
+      if (areTokensEquivalent(s, target[targetIdx])) {
+        found = true;
+        targetIdx++;
+        break;
+      }
+      targetIdx++;
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
 /**
  * Checks that the returned Wikipedia article title is genuinely about the heading query
- * while strictly blocking partial-overlap false positives (like "Asier Riesgo" for "Riesgo real"
- * or "Masa crítica" for "Posible crítica" or "Consejo de Castilla" for "Consejo práctico").
+ * while strictly blocking partial-overlap false positives, reversed token order ("El peso de la historia" vs "Historia del peso"),
+ * and pop-culture film/song/series disambiguations on generic phrases.
  */
 function isRelevantWikiMatch(
   query: string,
@@ -504,15 +631,42 @@ function isRelevantWikiMatch(
     return false;
   }
 
-  // Strip parenthetical qualifier from Wikipedia title (e.g. "El idiota (novela)" -> "El idiota")
-  const wikiBaseTitle = wikiTitle.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  const queryHasProperNoun = hasProperCapitalizationOrQuotes(query);
+  const titleParenMatch = wikiTitle.match(/\(([^)]+)\)/);
+  const titleParenText = titleParenMatch ? titleParenMatch[1].toLowerCase() : '';
+
+  // If the query is a generic sentence-case phrase (no non-initial proper noun or quotes),
+  // NEVER match a movie, song, music album, TV series, episode, municipality, or biological species!
+  if (!queryHasProperNoun) {
+    const popOrGeoNoise =
+      /\b(pel[ií]cula|serie de televisi[oó]n|canci[oó]n|[aá]lbum|episodio|videojuego| telenovela|banda|grupo musical|municipio|localidad|comuna|especie de|g[eé]nero de)\b/i;
+    if (popOrGeoNoise.test(titleParenText) || popOrGeoNoise.test(lowerDesc) || popOrGeoNoise.test(lowerExtract.slice(0, 180))) {
+      return false;
+    }
+  }
+
+  // Strip parenthetical qualifier from Wikipedia title only when allowed (or when query has proper capitalization)
+  const wikiBaseTitle = queryHasProperNoun
+    ? wikiTitle.replace(/\s*\([^)]*\)\s*/g, ' ').trim()
+    : wikiTitle.trim();
 
   const qNorm = normalizeText(query);
   const tNorm = normalizeText(wikiBaseTitle);
   if (!qNorm || !tNorm) return false;
 
-  // 1. Exact normalized title match
-  if (qNorm === tNorm) return true;
+  const qWithoutLeadingArticle = qNorm.replace(/^(?:el|la|los|las|un|una)\s+/, '').trim();
+  const tWithoutLeadingArticle = tNorm.replace(/^(?:el|la|los|las|un|una)\s+/, '').trim();
+
+  // 1. Exact normalized title match (preserving exact word order)
+  if (qNorm === tNorm || qWithoutLeadingArticle === tWithoutLeadingArticle) {
+    return true;
+  }
+
+  // If the heading had no non-initial proper nouns (pure sentence-case common phrase),
+  // require the exact normalized phrase match above — never do loose token subset matching!
+  if (!queryHasProperNoun) {
+    return false;
+  }
 
   const qTokens = qNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length >= 2);
   const tTokens = tNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length >= 2);
@@ -521,8 +675,8 @@ function isRelevantWikiMatch(
   const allQueryInTitle = qTokens.every((qt) => tTokens.some((tt) => areTokensEquivalent(qt, tt)));
   const allTitleInQuery = tTokens.every((tt) => qTokens.some((qt) => areTokensEquivalent(qt, tt)));
 
-  // 2. Exact token set equivalence (e.g. "La Noche de los Bastones Largos" <-> "Noche de los Bastones Largos")
-  if (allQueryInTitle && allTitleInQuery) {
+  // 2. Exact token set equivalence IN THE SAME ORDER (prevents "El peso de la historia" matching "Historia del peso")
+  if (allQueryInTitle && allTitleInQuery && areTokensInSameOrder(qTokens, tTokens)) {
     return true;
   }
 
@@ -531,15 +685,14 @@ function isRelevantWikiMatch(
     return true;
   }
 
-  // 4. Multi-token query where 100% of query tokens appear in the Wikipedia title
+  // 4. Multi-token proper query where 100% of query tokens appear in the Wikipedia title IN THE SAME ORDER
   // (e.g. "Re:Zero" -> ['re', 'zero'] in "Re:Zero kara Hajimeru Isekai Seikatsu")
-  if (qTokens.length >= 2 && allQueryInTitle) {
+  if (qTokens.length >= 2 && allQueryInTitle && areTokensInSameOrder(qTokens, tTokens)) {
     return true;
   }
 
   // 5. Single-token Proper Name / Surname / Work Title where the token is in the Wikipedia title
   // (e.g. "Dostoyevski" -> "Fiódor Dostoyevski", "Kafka" -> "Franz Kafka", "Evangelion" -> "Neon Genesis Evangelion")
-  // Guarded so generic common nouns never match random compound titles
   if (
     qTokens.length === 1 &&
     qTokens[0].length >= 5 &&
@@ -552,7 +705,7 @@ function isRelevantWikiMatch(
 
   // 6. Query includes both Work and Author (e.g. "El idiota de Dostoyevski"), where 100% of Wiki title ("El idiota")
   // is in the query AND the remaining query tokens ("dostoyevski") appear in the Wikipedia description/extract
-  if (allTitleInQuery && qTokens.length > tTokens.length) {
+  if (allTitleInQuery && qTokens.length > tTokens.length && areTokensInSameOrder(tTokens, qTokens)) {
     const descAndExtractNorm = normalizeText(`${wikiDescription} ${(wikiExtract || '').slice(0, 300)}`);
     const extraTokens = qTokens.filter((qt) => !tTokens.some((tt) => areTokensEquivalent(qt, tt)));
     if (extraTokens.every((et) => descAndExtractNorm.includes(et))) {

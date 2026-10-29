@@ -273,13 +273,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = React.memo(({
       : `${totalContextTokens}`;
 
   return (
-    <header className="sticky top-0 z-30 w-full h-14 bg-[#09090b] border-b border-white/10 px-2 sm:px-3 flex items-center justify-between gap-1 sm:gap-2 shrink-0 select-none">
+    <header className="sticky top-0 z-30 w-full h-14 bg-white dark:bg-[#09090b] border-b border-zinc-200 dark:border-white/10 px-2 sm:px-3 flex items-center justify-between gap-1 sm:gap-2 shrink-0 select-none">
       {/* Left Section: Fixed Hamburger Menu + Clean Title & Folder */}
       <div className="flex items-center min-w-0 flex-1 mr-1 sm:mr-2">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="relative z-30 w-11 h-11 min-h-[44px] min-w-[44px] ml-0.5 mr-1.5 shrink-0 rounded-full bg-white/[0.08] md:hover:bg-white/[0.14] active:bg-white/[0.2] border border-white/[0.08] text-neutral-100 select-none active:scale-95 transition-colors duration-150 flex items-center justify-center cursor-pointer touch-manipulation after:content-[''] after:absolute after:-inset-2"
+          className="relative z-30 w-11 h-11 min-h-[44px] min-w-[44px] ml-0.5 mr-1.5 shrink-0 rounded-full bg-zinc-100 md:hover:bg-zinc-200/80 active:bg-zinc-200 dark:bg-white/[0.08] dark:md:hover:bg-white/[0.14] dark:active:bg-white/[0.2] border border-zinc-200/80 dark:border-white/[0.08] text-zinc-800 dark:text-neutral-100 select-none active:scale-95 transition-colors duration-150 flex items-center justify-center cursor-pointer touch-manipulation after:content-[''] after:absolute after:-inset-2"
           aria-label="Abrir menú"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" className="pointer-events-none">
@@ -393,7 +393,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = React.memo(({
                         setIsEditingTitle(true);
                       }
                     }}
-                    className={`truncate max-w-[170px] xs:max-w-[230px] sm:max-w-xs md:max-w-md text-xs sm:text-sm font-semibold text-white hover:text-amber-300 leading-normal select-none cursor-pointer transition-colors ${
+                    className={`truncate max-w-[170px] xs:max-w-[230px] sm:max-w-xs md:max-w-md text-xs sm:text-sm font-semibold text-zinc-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-300 leading-normal select-none cursor-pointer transition-colors ${
                       isStreaming ? 'chat-title-streaming-fade' : ''
                     }`}
                     title={`${chat.title} • Toca para opciones de la conversación`}
@@ -404,7 +404,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = React.memo(({
               )}
             </div>
           ) : (
-            <h1 className="truncate max-w-[180px] sm:max-w-xs text-sm font-semibold text-white leading-normal">
+            <h1 className="truncate max-w-[180px] sm:max-w-xs text-sm font-semibold text-zinc-900 dark:text-white leading-normal">
               Kizuna-Zek
             </h1>
           )}
@@ -874,7 +874,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = React.memo(({
           <motion.button
             whileTap={{ scale: 0.94 }}
             onClick={onToggleInChatSearch}
-            className="p-1.5 sm:p-2 min-w-[38px] min-h-[38px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-xl text-amber-400 hover:text-white hover:bg-amber-500/20 select-none active:scale-95 transition-all cursor-pointer shrink-0"
+            className="p-1.5 sm:p-2 min-w-[38px] min-h-[38px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-xl text-amber-500 dark:text-amber-400 hover:text-amber-700 dark:hover:text-white hover:bg-amber-500/15 dark:hover:bg-amber-500/20 select-none active:scale-95 transition-all cursor-pointer shrink-0"
             aria-label="Buscar palabras clave en este chat"
             title="Buscar palabras clave o conceptos en esta conversación"
           >
@@ -889,8 +889,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = React.memo(({
             onClick={() => setIsOverflowOpen(!isOverflowOpen)}
             className={`p-1.5 sm:p-2 min-w-[38px] min-h-[38px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full select-none transition-colors duration-200 cursor-pointer ${
               isOverflowOpen
-                ? 'bg-white text-black shadow-lg'
-                : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                ? 'bg-zinc-900 text-white dark:bg-white dark:text-black shadow-lg'
+                : 'text-zinc-700 dark:text-neutral-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10'
             }`}
             aria-label={isOverflowOpen ? 'Cerrar menú' : 'Más opciones'}
             title={isOverflowOpen ? 'Cerrar menú (×)' : 'Más opciones'}
