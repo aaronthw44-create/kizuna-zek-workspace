@@ -13,17 +13,23 @@ export interface WikiVisualMatch {
 // Global in-memory + sessionStorage cache so each term is fetched at most once per session
 const wikiCache = new Map<string, WikiVisualMatch | null>();
 const inflightRequests = new Map<string, Promise<WikiVisualMatch | null>>();
-const SESSION_CACHE_PREFIX = 'kizuna_wiki_summary_v4:';
+const SESSION_CACHE_PREFIX = 'kizuna_wiki_summary_v6:';
 const WIKI_HEADERS: HeadersInit = {
   Accept: 'application/json',
 };
 
-// Purge legacy sessionStorage keys from v2/v3 that may hold false-positive matches
+// Purge legacy sessionStorage keys from v2/v3/v4/v5
 try {
   if (typeof sessionStorage !== 'undefined') {
     for (let i = sessionStorage.length - 1; i >= 0; i--) {
       const k = sessionStorage.key(i);
-      if (k && (k.startsWith('kizuna_wiki_summary_v2:') || k.startsWith('kizuna_wiki_summary_v3:'))) {
+      if (
+        k &&
+        (k.startsWith('kizuna_wiki_summary_v2:') ||
+          k.startsWith('kizuna_wiki_summary_v3:') ||
+          k.startsWith('kizuna_wiki_summary_v4:') ||
+          k.startsWith('kizuna_wiki_summary_v5:'))
+      ) {
         sessionStorage.removeItem(k);
       }
     }
@@ -60,7 +66,7 @@ function writeSessionCache(key: string, value: WikiVisualMatch | null): void {
   }
 }
 
-// Headings that are structural/conversational/creative-writing/editorial markers and should NEVER query Wikipedia
+// Headings that are structural/conversational/creative-writing/editorial markers and should NEVER query Wikipedia on their own
 const GENERIC_HEADING_STOPWORDS = new Set([
   'introduccion',
   'conclusion',
@@ -146,6 +152,8 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'prompt',
   'personaje',
   'personajes',
+  'protagonista',
+  'protagonistas',
   'dialogo',
   'dialogos',
   'narrativa',
@@ -155,9 +163,6 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'continuacion',
   'epilogo',
   'prologo',
-  'historia',
-  'origen',
-  'biografia',
   'quien',
   'que',
   'como',
@@ -170,8 +175,6 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'posibles',
   'riesgo',
   'riesgos',
-  'real',
-  'reales',
   'error',
   'errores',
   'comun',
@@ -202,30 +205,26 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'lectura',
   'lector',
   'lectores',
-  'autor',
-  'escritor',
   'novela',
+  'novelas',
   'obra',
+  'obras',
   'texto',
   'escenario',
   'tecnica',
   'tecnicas',
   'recurso',
   'recursos',
-  'impacto',
-  'efecto',
   'nivel',
   'niveles',
   'bloque',
   'bloques',
-  'resumen',
-  'cierre',
   'mea',
   'culpa',
 ]);
 
-// Conversational / 2nd-person / literary-critique tokens that disqualify the ENTIRE heading immediately
-const CONVERSATIONAL_OR_CRITIQUE_TOKENS = new Set([
+// Conversational / 2nd-person verbs & pronouns that disqualify a candidate phrase
+const CONVERSATIONAL_CANDIDATE_TOKENS = new Set([
   'vos',
   'tu',
   'tus',
@@ -251,35 +250,12 @@ const CONVERSATIONAL_OR_CRITIQUE_TOKENS = new Set([
   'pensas',
   'sentis',
   'sientes',
-  'caso',
   'falso',
   'falsa',
   'reforzar',
   'mejorar',
   'evitar',
   'aplicar',
-  'escena',
-  'escenas',
-  'capitulo',
-  'capitulos',
-  'personaje',
-  'personajes',
-  'caracterizacion',
-  'subtexto',
-  'narrador',
-  'lector',
-  'consejo',
-  'consejos',
-  'critica',
-  'criticas',
-  'riesgo',
-  'riesgos',
-  'error',
-  'errores',
-  'acierto',
-  'aciertos',
-  'veredicto',
-  'diagnostico',
 ]);
 
 // Fictional canon entities from Monstereth so we don't query real-world Wikipedia for them
@@ -326,22 +302,69 @@ function normalizeText(str: string): string {
     .trim();
 }
 
+function isCleanEncyclopedicPhrase(phrase: string): boolean {
+  const norm = normalizeText(phrase);
+  if (!norm) return false;
+  const words = norm.split(' ').filter(Boolean);
+  if (words.length === 0 || words.length > 7) return false;
+
+  if (LEADING_PREPOSITIONS.has(words[0])) return false;
+  if (words.some((w) => FICTIONAL_LORE_STOPWORDS.has(w))) return false;
+  if (words.some((w) => CONVERSATIONAL_CANDIDATE_TOKENS.has(w))) return false;
+
+  // If the first word is an editorial stopword (e.g. "Consejo práctico", "Posible crítica", "Riesgo real", "Error común"), reject
+  if (GENERIC_HEADING_STOPWORDS.has(words[0])) return false;
+
+  const meaningful = words.filter((w) => !TOKEN_STOPWORDS.has(w) && w.length >= 2);
+  if (meaningful.length === 0) return false;
+
+  // Reject if any meaningful word is a core critique/workshop rubric word
+  if (meaningful.some((w) => GENERIC_HEADING_STOPWORDS.has(w))) return false;
+
+  return true;
+}
+
+/**
+ * Fallback extractor for mixed headings like:
+ * - "2. El paralelo entre Kolder y Fiódor Dostoyevski" -> "Fiódor Dostoyevski"
+ * - "3. Como en «Crimen y castigo» de Dostoyevski" -> "Crimen y castigo"
+ * Never extracts initial sentence-case generic words or Monstereth lore names.
+ */
+function extractEmbeddedProperEntity(rawHeading: string): string | null {
+  // 1. Check for explicitly quoted work titles ("...", “...”, «...»)
+  const quoteMatch = rawHeading.match(/[«"“]([^»"”]{3,45})[»"”]/);
+  if (quoteMatch && quoteMatch[1]) {
+    const qCandidate = quoteMatch[1].trim();
+    if (isCleanEncyclopedicPhrase(qCandidate)) {
+      return qCandidate;
+    }
+  }
+
+  // 2. Check for multi-word Capitalized Proper Names inside the heading (e.g. "Fiódor Dostoyevski", "Albert Camus", "Naoki Urasawa")
+  const stripped = rawHeading
+    .replace(/^[\dIVXLCDM]+[\.\)\-:]\s*/i, '')
+    .replace(/[*_`~#¿?¡!()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const properSeqRegex = /\b([A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}(?:\s+[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,})+)\b/g;
+  let match: RegExpExecArray | null;
+  while ((match = properSeqRegex.exec(stripped)) !== null) {
+    const candidate = match[1].trim();
+    if (isCleanEncyclopedicPhrase(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Extracts a clean encyclopedic search query from a Markdown heading if and only if
  * it looks like a concrete historical event, place, person, published work, or scientific concept.
  */
 export function extractCandidateQueryFromHeading(rawHeading: string): string | null {
   if (!rawHeading || typeof rawHeading !== 'string') return null;
-
-  // 1. Inspect the ENTIRE raw heading (including parenthetical notes and colons) first!
-  // If any part of the heading references fictional lore, conversational 2nd-person remarks,
-  // or literary-workshop rubrics (e.g. "Riesgo real (y cómo vos lo evitaste)", "En escenas clave (ej.: Capítulo 88)"),
-  // disqualify the entire heading immediately.
-  const fullNorm = normalizeText(rawHeading);
-  if (!fullNorm) return null;
-  const fullTokens = fullNorm.split(' ').filter(Boolean);
-  if (fullTokens.some((w) => FICTIONAL_LORE_STOPWORDS.has(w))) return null;
-  if (fullTokens.some((w) => CONVERSATIONAL_OR_CRITIQUE_TOKENS.has(w))) return null;
 
   // Strip leading numbering like "1.", "2)", "II.", "Paso 1:", emojis, or markdown markers
   let cleaned = rawHeading
@@ -350,20 +373,49 @@ export function extractCandidateQueryFromHeading(rawHeading: string): string | n
     .replace(/[*_`~#]/g, '')
     .trim();
 
-  if (!cleaned || cleaned.length < 3 || cleaned.length > 85) return null;
+  if (!cleaned || cleaned.length < 3 || cleaned.length > 95) return null;
 
-  // Reject rhetorical questions or headings containing question marks unless strictly "¿Quién fue X?" with a Proper Noun
+  // Handle question headings (e.g. "¿Quién fue Fiódor Dostoyevski?", "¿Qué es el Sistema Límbico?")
+  // Reject rhetorical questions that have a trailing parenthetical like "¿Qué es la caracterización? (No es lo que crees)"
   if (cleaned.includes('¿') || cleaned.includes('?')) {
-    // Disallow if there is a trailing conversational parenthetical after the question mark, e.g. "¿Qué es X? (No es lo que crees)"
-    if (!cleaned.endsWith('?')) return null;
+    if (!cleaned.endsWith('?')) {
+      return extractEmbeddedProperEntity(cleaned);
+    }
     const qMatch = cleaned
       .replace(/^[¿?]+|[¿?]+$/g, '')
       .trim()
-      .match(/^(?:qu[ií]en\s+(?:fue|es|era))\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑa-záéíóúñ]+){0,4})$/);
-    if (qMatch && qMatch[1] && qMatch[1].trim().length >= 4) {
+      .match(/^(?:qu[ií]en\s+(?:fue|es|era)|qu[eé]\s+(?:fue|es|son|era))\s+(.+)$/i);
+    if (qMatch && qMatch[1] && qMatch[1].trim().length >= 3) {
       cleaned = qMatch[1].trim();
     } else {
-      return null;
+      return extractEmbeddedProperEntity(cleaned);
+    }
+  }
+
+  // If there is a parenthetical that contains conversational/critique markers (like "(y por qué es falsa en tu caso)",
+  // "(y cómo vos lo evitaste)", "(ej.: Capítulo 88, máquina expendedora)") AND there is no colon separating a real title,
+  // check if the parenthetical itself marks this heading as an editorial rubric
+  const parenMatches = cleaned.match(/\(([^)]*)\)/g);
+  if (parenMatches) {
+    for (const pm of parenMatches) {
+      const pNorm = normalizeText(pm);
+      const pWords = pNorm.split(' ').filter(Boolean);
+      if (
+        pWords.some(
+          (w) =>
+            CONVERSATIONAL_CANDIDATE_TOKENS.has(w) ||
+            FICTIONAL_LORE_STOPWORDS.has(w) ||
+            w === 'capitulo' ||
+            w === 'ej' ||
+            w === 'ejemplo' ||
+            w === 'caso'
+        )
+      ) {
+        const outside = cleaned.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+        if (!isCleanEncyclopedicPhrase(outside)) {
+          return extractEmbeddedProperEntity(outside);
+        }
+      }
     }
   }
 
@@ -371,64 +423,42 @@ export function extractCandidateQueryFromHeading(rawHeading: string): string | n
   const withoutParens = cleaned.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
   const candidate = withoutParens.length >= 3 ? withoutParens : cleaned;
 
-  // Split after colon or dash only if prefix is a known encyclopedic label
+  // Handle colon or dash splits (e.g., "1. Fiódor Dostoyevski: Cómo construye el subtexto" OR "Ejemplo histórico: El Cordobazo")
   let finalQuery = candidate;
-  if (candidate.includes(':')) {
-    const [left, right] = candidate.split(':', 2).map((s) => s.trim());
-    const normLeftWords = normalizeText(left).split(' ').filter(Boolean);
-    if (normLeftWords.some((w) => GENERIC_HEADING_STOPWORDS.has(w))) {
-      return null;
-    }
-    if (left && left.length >= 3 && left.length <= 50 && !right.includes('¿')) {
+  if (candidate.includes(':') && !/^re:zero$/i.test(candidate.trim())) {
+    const idx = candidate.indexOf(':');
+    const left = candidate.slice(0, idx).trim();
+    const right = candidate.slice(idx + 1).trim();
+    if (/^re$/i.test(left) && /^zero\b/i.test(right)) {
+      finalQuery = 'Re:Zero';
+    } else if (isCleanEncyclopedicPhrase(left)) {
       finalQuery = left;
+    } else if (isCleanEncyclopedicPhrase(right)) {
+      finalQuery = right;
     } else {
-      return null;
+      return extractEmbeddedProperEntity(candidate);
     }
   } else if (/\s+[—–-]\s+/.test(candidate)) {
-    const [left] = candidate.split(/\s+[—–-]\s+/, 2).map((s) => s.trim());
-    const normLeftWords = normalizeText(left).split(' ').filter(Boolean);
-    if (normLeftWords.some((w) => GENERIC_HEADING_STOPWORDS.has(w))) {
-      return null;
-    }
-    if (left && left.length >= 3 && left.length <= 50) {
+    const [left, right] = candidate.split(/\s+[—–-]\s+/, 2).map((s) => s.trim());
+    if (isCleanEncyclopedicPhrase(left)) {
       finalQuery = left;
+    } else if (right && isCleanEncyclopedicPhrase(right)) {
+      finalQuery = right;
     } else {
-      return null;
+      return extractEmbeddedProperEntity(candidate);
     }
   }
 
-  const norm = normalizeText(finalQuery);
-  if (!norm) return null;
+  // Strip leading editorial prefixes like "Comparación con Fiódor Dostoyevski", "Análisis de El idiota", "Historia del Cordobazo"
+  finalQuery = finalQuery
+    .replace(
+      /^(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(?:paralelo|comparaci[óo]n|diferencia|diferencias|similitud|similitudes|v[íi]nculo|conexi[óo]n|contraste|influencia|referencia|an[áa]lisis|contexto|resumen|s[íi]ntesis|historia|origen|or[íi]genes|biograf[íi]a|explicaci[óo]n|impacto|legado|estudio|perfil)\s+(?:hist[óo]rico\s+|literario\s+|narrativo\s+|pol[íi]tico\s+|filos[óo]fico\s+|cient[íi]fico\s+)?(?:con\s+|frente\s+a\s+|ante\s+|de\s+la\s+|de\s+los\s+|de\s+las\s+|del\s+|de\s+|sobre\s+el\s+|sobre\s+la\s+|sobre\s+)/i,
+      ''
+    )
+    .trim();
 
-  const words = norm.split(' ').filter(Boolean);
-  if (words.length === 0 || words.length > 7) return null;
-
-  // Reject phrases starting with prepositions/conjunctions like "En escenas...", "Sobre el...", "Por qué..."
-  if (LEADING_PREPOSITIONS.has(words[0])) return null;
-
-  // Reject if ANY word in the candidate is a generic structural/editorial stopword
-  if (words.some((w) => GENERIC_HEADING_STOPWORDS.has(w) || FICTIONAL_LORE_STOPWORDS.has(w))) {
-    return null;
-  }
-
-  const meaningfulWords = words.filter((w) => !TOKEN_STOPWORDS.has(w) && w.length > 2);
-  if (meaningfulWords.length === 0) return null;
-
-  // Require at least one capitalized word (Proper Noun) in the original candidate
-  // (after stripping leading articles like El/La/Los/Las/Un/Una so ordinary sentence-case generic nouns don't slip through)
-  const wordsOriginal = finalQuery.trim().split(/\s+/);
-  const nonInitialProperNoun = wordsOriginal
-    .slice(1)
-    .some((w) => /^[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}/.test(w.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü]/g, '')));
-  const firstWordClean = (wordsOriginal[0] || '').replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü]/g, '');
-  const isSingleProperName =
-    wordsOriginal.length >= 1 &&
-    wordsOriginal.length <= 4 &&
-    /^[A-ZÁÉÍÓÚÑÜ][a-záéíóúñü]{2,}/.test(firstWordClean) &&
-    !TOKEN_STOPWORDS.has(normalizeText(firstWordClean));
-
-  if (!nonInitialProperNoun && !isSingleProperName) {
-    return null;
+  if (!isCleanEncyclopedicPhrase(finalQuery)) {
+    return extractEmbeddedProperEntity(finalQuery);
   }
 
   return finalQuery;
@@ -436,9 +466,9 @@ export function extractCandidateQueryFromHeading(rawHeading: string): string | n
 
 function areTokensEquivalent(a: string, b: string): boolean {
   if (a === b) return true;
-  // Allow minor transliteration difference (e.g. dostoievski vs dostoyevski) only on long proper nouns (>= 7 chars)
-  if (a.length >= 7 && b.length >= 7 && Math.abs(a.length - b.length) <= 1) {
-    if (a.slice(0, 5) === b.slice(0, 5) && a.slice(-3) === b.slice(-3)) {
+  // Allow minor transliteration difference (e.g. dostoievski vs dostoyevski) on longer words (>= 6 chars)
+  if (a.length >= 6 && b.length >= 6 && Math.abs(a.length - b.length) <= 1) {
+    if (a.slice(0, 4) === b.slice(0, 4) && a.slice(-3) === b.slice(-3)) {
       return true;
     }
   }
@@ -446,8 +476,9 @@ function areTokensEquivalent(a: string, b: string): boolean {
 }
 
 /**
- * Checks that the returned Wikipedia article title is strictly equivalent to the heading query
- * so we NEVER display an unrelated article (e.g. "Asier Riesgo" for "Riesgo real" or "Masa crítica" for "Posible crítica").
+ * Checks that the returned Wikipedia article title is genuinely about the heading query
+ * while strictly blocking partial-overlap false positives (like "Asier Riesgo" for "Riesgo real"
+ * or "Masa crítica" for "Posible crítica" or "Consejo de Castilla" for "Consejo práctico").
  */
 function isRelevantWikiMatch(
   query: string,
@@ -480,21 +511,53 @@ function isRelevantWikiMatch(
   const tNorm = normalizeText(wikiBaseTitle);
   if (!qNorm || !tNorm) return false;
 
-  // Exact normalized string match
+  // 1. Exact normalized title match
   if (qNorm === tNorm) return true;
 
   const qTokens = qNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length >= 2);
   const tTokens = tNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length >= 2);
   if (qTokens.length === 0 || tTokens.length === 0) return false;
 
-  // Strict bidirectional token check:
-  // Every meaningful token in the query MUST match a meaningful token in the Wikipedia title,
-  // AND every meaningful token in the Wikipedia title MUST match a meaningful token in the query!
   const allQueryInTitle = qTokens.every((qt) => tTokens.some((tt) => areTokensEquivalent(qt, tt)));
   const allTitleInQuery = tTokens.every((tt) => qTokens.some((qt) => areTokensEquivalent(qt, tt)));
 
-  if (allQueryInTitle && allTitleInQuery && qTokens.length === tTokens.length) {
+  // 2. Exact token set equivalence (e.g. "La Noche de los Bastones Largos" <-> "Noche de los Bastones Largos")
+  if (allQueryInTitle && allTitleInQuery) {
     return true;
+  }
+
+  // 3. Contiguous multi-token Wikipedia title inside query (e.g. "Fiódor Dostoyevski y el subtexto" includes "Fiódor Dostoyevski")
+  if (tTokens.length >= 2 && qNorm.includes(tNorm)) {
+    return true;
+  }
+
+  // 4. Multi-token query where 100% of query tokens appear in the Wikipedia title
+  // (e.g. "Re:Zero" -> ['re', 'zero'] in "Re:Zero kara Hajimeru Isekai Seikatsu")
+  if (qTokens.length >= 2 && allQueryInTitle) {
+    return true;
+  }
+
+  // 5. Single-token Proper Name / Surname / Work Title where the token is in the Wikipedia title
+  // (e.g. "Dostoyevski" -> "Fiódor Dostoyevski", "Kafka" -> "Franz Kafka", "Evangelion" -> "Neon Genesis Evangelion")
+  // Guarded so generic common nouns never match random compound titles
+  if (
+    qTokens.length === 1 &&
+    qTokens[0].length >= 5 &&
+    allQueryInTitle &&
+    tTokens.length <= 4 &&
+    !GENERIC_HEADING_STOPWORDS.has(qTokens[0])
+  ) {
+    return true;
+  }
+
+  // 6. Query includes both Work and Author (e.g. "El idiota de Dostoyevski"), where 100% of Wiki title ("El idiota")
+  // is in the query AND the remaining query tokens ("dostoyevski") appear in the Wikipedia description/extract
+  if (allTitleInQuery && qTokens.length > tTokens.length) {
+    const descAndExtractNorm = normalizeText(`${wikiDescription} ${(wikiExtract || '').slice(0, 300)}`);
+    const extraTokens = qTokens.filter((qt) => !tTokens.some((tt) => areTokensEquivalent(qt, tt)));
+    if (extraTokens.every((et) => descAndExtractNorm.includes(et))) {
+      return true;
+    }
   }
 
   return false;
