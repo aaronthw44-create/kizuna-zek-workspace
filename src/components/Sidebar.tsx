@@ -137,10 +137,10 @@ const SidebarChatItem = React.memo<SidebarChatItemProps>(({
       }}
       className={`group/chat flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer text-xs select-none transition-all duration-150 ${
         isPressing
-          ? 'scale-[0.96] bg-amber-500/15 border border-amber-500/40 text-white shadow-sm'
+          ? 'scale-[0.96] bg-amber-500/15 border border-amber-500/40 text-zinc-900 dark:text-white shadow-sm'
           : isActive
-          ? 'bg-[#18181d] text-white font-medium border border-[#27272d] shadow-xs active:scale-[0.98]'
-          : 'text-[#a1a1aa] hover:bg-[#121216] hover:text-white active:scale-[0.98]'
+          ? 'bg-zinc-200/90 dark:bg-[#18181d] text-zinc-900 dark:text-white font-semibold border border-zinc-300 dark:border-[#27272d] shadow-xs active:scale-[0.98]'
+          : 'text-zinc-600 dark:text-[#a1a1aa] hover:bg-zinc-200/60 dark:hover:bg-[#121216] hover:text-zinc-900 dark:hover:text-white active:scale-[0.98]'
       }`}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -285,7 +285,7 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         {/* Top Header / Branding */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-[#18181c]">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#121215] border border-[#27272b] flex items-center justify-center font-mono font-semibold text-xs text-white">
+            <div className="kz-brand-badge w-7 h-7 rounded-md bg-zinc-900 dark:bg-[#121215] border border-zinc-800 dark:border-[#27272b] flex items-center justify-center font-mono font-semibold text-xs text-white">
               KZ
             </div>
             <div>

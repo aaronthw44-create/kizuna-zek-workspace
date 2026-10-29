@@ -13,9 +13,9 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
   if (loading) {
     return (
       <div
-        className={`w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-[#0d0d11] border border-white/10 text-xs font-mono text-[#a1a1aa] ${className}`}
+        className={`w-full min-h-[44px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-white dark:bg-[#0d0d11] border border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-[#a1a1aa] ${className}`}
       >
-        <Loader2 size={15} className="animate-spin text-white/70" />
+        <Loader2 size={15} className="animate-spin text-zinc-600 dark:text-white/70" />
         <span>Sincronizando sesión...</span>
       </div>
     );
@@ -27,7 +27,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
 
     return (
       <div className={`w-full flex flex-col gap-1.5 ${className}`}>
-        <div className="w-full min-h-[44px] flex items-center justify-between gap-2.5 p-2 rounded-lg bg-[#0d0d11] border border-white/10 shadow-xs">
+        <div className="w-full min-h-[44px] flex items-center justify-between gap-2.5 p-2 rounded-lg bg-white dark:bg-[#0d0d11] border border-zinc-200 dark:border-white/10 shadow-xs">
           {/* User Profile Info */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {user.photoURL && user.photoURL.trim() ? (
@@ -35,20 +35,20 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
                 src={user.photoURL}
                 alt={displayName}
                 referrerPolicy="no-referrer"
-                className="w-8 h-8 rounded-full object-cover shrink-0 border border-white/15"
+                className="w-8 h-8 rounded-full object-cover shrink-0 border border-zinc-200 dark:border-white/15"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/15 flex items-center justify-center shrink-0 text-white font-mono text-xs">
+              <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-300 dark:border-white/15 flex items-center justify-center shrink-0 text-white font-mono text-xs">
                 {displayName.charAt(0).toUpperCase() || <UserIcon size={14} />}
               </div>
             )}
 
             <div className="min-w-0 flex-1">
-              <span className="block text-xs font-medium text-white truncate leading-tight">
+              <span className="block text-xs font-semibold text-zinc-900 dark:text-white truncate leading-tight">
                 {displayName}
               </span>
               {email && (
-                <span className="block text-[10px] text-[#71717a] font-mono truncate leading-tight">
+                <span className="block text-[10px] text-zinc-500 dark:text-[#71717a] font-mono truncate leading-tight">
                   {email}
                 </span>
               )}
@@ -61,7 +61,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
             whileHover={{ scale: 1.02 }}
             type="button"
             onClick={() => logout()}
-            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-[#71717a] hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer shrink-0"
+            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-zinc-500 dark:text-[#71717a] hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer shrink-0"
             title="Cerrar sesión"
             aria-label="Cerrar sesión"
           >
@@ -70,23 +70,23 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
         </div>
 
         {error && (
-          <div className="w-full p-2.5 rounded-lg bg-red-950/40 border border-red-500/30 text-left flex flex-col gap-1.5">
+          <div className="w-full p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-500/30 text-left flex flex-col gap-1.5">
             <div className="flex items-start justify-between gap-1">
-              <div className="flex items-center gap-1.5 text-red-400 font-mono text-[11px] font-semibold">
-                <AlertTriangle size={13} className="shrink-0 text-red-400" />
+              <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 font-mono text-[11px] font-semibold">
+                <AlertTriangle size={13} className="shrink-0 text-red-600 dark:text-red-400" />
                 <span>{error.message}</span>
               </div>
               <button
                 type="button"
                 onClick={clearError}
-                className="text-zinc-400 hover:text-white p-1 rounded cursor-pointer min-h-[28px] min-w-[28px] flex items-center justify-center"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white p-1 rounded cursor-pointer min-h-[28px] min-w-[28px] flex items-center justify-center"
                 title="Cerrar aviso"
               >
                 <X size={12} />
               </button>
             </div>
             {error.details && (
-              <p className="text-[10px] text-zinc-300 leading-relaxed">
+              <p className="text-[10px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
                 {error.details}
               </p>
             )}
@@ -95,7 +95,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
                 href={error.actionUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[10px] text-amber-400 hover:text-amber-300 font-mono underline underline-offset-2 pt-0.5"
+                className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300 font-mono underline underline-offset-2 pt-0.5"
               >
                 <span>Abrir Firebase Console</span>
                 <ExternalLink size={10} />
@@ -115,7 +115,7 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ className = '' }) => {
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         type="button"
         onClick={() => login()}
-        className="w-full min-h-[44px] flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg bg-[#0d0d11] hover:bg-[#141419] border border-white/10 hover:border-white/20 text-xs font-medium text-[#e4e4e7] hover:text-white transition-all cursor-pointer shadow-xs select-none"
+        className="w-full min-h-[44px] flex items-center justify-center gap-2.5 px-3 py-2.5 rounded-lg bg-white dark:bg-[#0d0d11] hover:bg-zinc-100 dark:hover:bg-[#141419] border border-zinc-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20 text-xs font-medium text-zinc-800 dark:text-[#e4e4e7] hover:text-zinc-950 dark:hover:text-white transition-all cursor-pointer shadow-xs select-none"
       >
         {/* Google SVG Icon */}
         <svg

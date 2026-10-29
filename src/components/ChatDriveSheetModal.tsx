@@ -89,22 +89,22 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.22 }}
-            className="relative w-full sm:max-w-md bg-[#121216] border-t sm:border border-[#27272a] shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden p-4 text-white z-10 transform-gpu will-change-transform"
+            className="relative w-full sm:max-w-md bg-white dark:bg-[#121216] border-t sm:border border-zinc-200 dark:border-[#27272a] shadow-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden p-4 text-zinc-900 dark:text-white z-10 transform-gpu will-change-transform"
           >
             {/* Mobile Drag Handle */}
-            <div className="w-10 h-1 bg-zinc-700 rounded-full mx-auto mb-3 sm:hidden" />
+            <div className="w-10 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-3 sm:hidden" />
 
             {/* Sheet Header */}
-            <div className="flex items-start justify-between border-b border-[#222226] pb-3 mb-2">
+            <div className="flex items-start justify-between border-b border-zinc-200 dark:border-[#222226] pb-3 mb-2">
               <div className="flex items-center gap-3 min-w-0 pr-2">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
                   <MessageSquare size={18} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-white truncate leading-tight">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-white truncate leading-tight">
                     {activeChatData.title}
                   </h3>
-                  <p className="text-[11px] text-zinc-400 font-mono mt-0.5">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
                     {activeChatData.messages.length} mensajes • {activeChatData.folderId ? 'En carpeta' : 'Chat libre'}
                   </p>
                 </div>
@@ -112,7 +112,7 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2 min-h-[44px] min-w-[44px] text-zinc-400 hover:text-white rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-colors active:scale-95"
+                className="p-2 min-h-[44px] min-w-[44px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-colors active:scale-95"
                 aria-label="Cerrar modal"
               >
                 <X size={18} />
@@ -130,7 +130,7 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                   className="py-2 space-y-3"
                 >
-                  <label className="block text-xs font-medium text-amber-300 font-mono">
+                  <label className="block text-xs font-medium text-amber-600 dark:text-amber-300 font-mono">
                     Nuevo nombre de la conversación:
                   </label>
                   <input
@@ -142,7 +142,7 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                       if (e.key === 'Escape') setIsRenaming(false);
                     }}
                     autoFocus
-                    className="w-full bg-[#0a0a0d] border border-amber-500/50 rounded-xl px-3.5 py-2.5 text-[16px] md:text-sm text-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 font-medium transition-all"
+                    className="w-full bg-zinc-50 dark:bg-[#0a0a0d] border border-amber-500/50 rounded-xl px-3.5 py-2.5 text-[16px] md:text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-amber-500 dark:focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 font-medium transition-all"
                     placeholder="Escribe el título..."
                   />
                   <div className="flex items-center justify-end gap-2 pt-1">
@@ -150,7 +150,7 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                       type="button"
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsRenaming(false)}
-                      className="px-3.5 py-2 min-h-[44px] text-xs font-mono text-zinc-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 min-h-[44px] text-xs font-mono text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                     >
                       Cancelar
                     </motion.button>
@@ -177,14 +177,14 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                   className="py-2 space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-zinc-300 font-mono">
+                    <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 font-mono">
                       Seleccionar carpeta destino:
                     </span>
                     <motion.button
                       type="button"
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setIsFolderPickerOpen(false)}
-                      className="text-xs text-amber-400 hover:underline px-2 py-1 cursor-pointer"
+                      className="text-xs text-amber-600 dark:text-amber-400 hover:underline px-2 py-1 cursor-pointer"
                     >
                       Volver
                     </motion.button>
@@ -203,8 +203,8 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                       }}
                       className={`w-full flex items-center justify-between p-3 min-h-[44px] rounded-xl border text-xs font-mono text-left transition-colors cursor-pointer ${
                         !activeChatData.folderId
-                          ? 'bg-amber-500/20 text-amber-200 border-amber-500/50 font-semibold'
-                          : 'bg-[#18181d] text-zinc-300 border-[#27272a] hover:bg-[#202026] hover:text-white'
+                          ? 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/50 font-semibold'
+                          : 'bg-zinc-50 dark:bg-[#18181d] text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-[#202026] hover:text-zinc-900 dark:hover:text-white'
                       }`}
                     >
                       <span className="flex items-center gap-2 truncate">
@@ -232,8 +232,8 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                           }}
                           className={`w-full flex items-center justify-between p-3 min-h-[44px] rounded-xl border text-xs font-mono text-left transition-colors cursor-pointer ${
                             isCurrent
-                              ? 'bg-amber-500/20 text-amber-200 border-amber-500/50 font-semibold'
-                              : 'bg-[#18181d] text-zinc-300 border-[#27272a] hover:bg-[#202026] hover:text-white'
+                              ? 'bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/50 font-semibold'
+                              : 'bg-zinc-50 dark:bg-[#18181d] text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-[#27272a] hover:bg-zinc-100 dark:hover:bg-[#202026] hover:text-zinc-900 dark:hover:text-white'
                           }`}
                         >
                           <span className="flex items-center gap-2 truncate">
@@ -262,19 +262,19 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                     transition={{ duration: 0.35 }}
                     className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl space-y-1.5"
                   >
-                    <h4 className="text-xs font-semibold text-red-400 flex items-center gap-2 font-mono">
+                    <h4 className="text-xs font-semibold text-red-600 dark:text-red-400 flex items-center gap-2 font-mono">
                       <Trash2 size={15} />
                       <span>¿Eliminar conversación?</span>
                     </h4>
-                    <p className="text-xs text-zinc-300 leading-relaxed font-sans">
-                      ¿Estás seguro de que deseas eliminar "<span className="text-white font-medium">{activeChatData.title}</span>"? Esta acción borrará el historial de este chat de forma permanente.
+                    <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-sans">
+                      ¿Estás seguro de que deseas eliminar "<span className="text-zinc-950 dark:text-white font-semibold">{activeChatData.title}</span>"? Esta acción borrará el historial de este chat de forma permanente.
                     </p>
                   </motion.div>
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <button
                       type="button"
                       onClick={() => setIsConfirmingDelete(false)}
-                      className="px-4 py-2.5 min-h-[44px] text-xs font-mono text-zinc-300 hover:text-white rounded-xl hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
+                      className="px-4 py-2.5 min-h-[44px] text-xs font-mono text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
                     >
                       Cancelar
                     </button>
@@ -303,9 +303,9 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsRenaming(true)}
-                    className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 active:bg-zinc-200 dark:active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
                   >
-                    <Edit2 size={16} className="text-amber-400 shrink-0" />
+                    <Edit2 size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
                     <span className="flex-1">Renombrar conversación</span>
                   </button>
 
@@ -317,9 +317,9 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                         onClose();
                         onSearchInChat(activeChatData.id);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
+                      className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 active:bg-zinc-200 dark:active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
                     >
-                      <Search size={16} className="text-amber-400 shrink-0" />
+                      <Search size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
                       <span className="flex-1">Buscar palabras clave / conceptos</span>
                     </button>
                   )}
@@ -329,13 +329,13 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setIsFolderPickerOpen(true)}
-                      className="w-full flex items-center justify-between px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
+                      className="w-full flex items-center justify-between px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 active:bg-zinc-200 dark:active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <FolderInput size={16} className="text-amber-400 shrink-0" />
+                        <FolderInput size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
                         <span className="truncate">Mover a carpeta</span>
                       </div>
-                      <ChevronRight size={14} className="text-zinc-500 shrink-0" />
+                      <ChevronRight size={14} className="text-zinc-400 dark:text-zinc-500 shrink-0" />
                     </button>
                   )}
 
@@ -347,9 +347,9 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                         onClose();
                         onExportChat(activeChatData.id);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-200 hover:text-white hover:bg-white/5 active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
+                      className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 active:bg-zinc-200 dark:active:bg-white/10 active:scale-[0.98] transition-all text-left cursor-pointer"
                     >
-                      <Download size={16} className="text-amber-400 shrink-0" />
+                      <Download size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />
                       <span className="flex-1">Exportar conversación</span>
                     </button>
                   )}
@@ -358,7 +358,7 @@ export const ChatDriveSheetModal: React.FC<ChatDriveSheetModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsConfirmingDelete(true)}
-                    className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 active:bg-red-500/20 active:scale-[0.98] transition-all text-left cursor-pointer mt-1"
+                    className="w-full flex items-center gap-3 px-3 py-3 min-h-[44px] rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 active:bg-red-500/20 active:scale-[0.98] transition-all text-left cursor-pointer mt-1"
                   >
                     <Trash2 size={16} className="shrink-0" />
                     <span className="flex-1 font-semibold">Eliminar conversación</span>

@@ -74,6 +74,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  code, pre, kbd, samp, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 /* =========================================================
    OPENWEBUI DAY / LIGHT MODE COMPREHENSIVE PALETTE
    ========================================================= */
@@ -102,12 +108,15 @@ body.light-theme aside > div {
 }
 
 /* Sidebar KZ Brand Logo Badge */
+body.light-theme aside .kz-brand-badge,
 body.light-theme aside div.bg-white.text-black {
   background-color: #18181b !important;
+  border-color: #18181b !important;
   color: #ffffff !important;
 }
 
 /* Sidebar Active Chat & Active Folder Highlight */
+body.light-theme aside [class*="bg-[#18181d]"],
 body.light-theme aside [class*="bg-[#16161a]"],
 body.light-theme aside [class*="bg-[#141418]"] {
   background-color: #e4e4e7 !important;
@@ -115,7 +124,14 @@ body.light-theme aside [class*="bg-[#141418]"] {
   border-color: #d4d4d8 !important;
 }
 
-/* Sidebar Bottom Utility Buttons & Search Box */
+body.light-theme aside [class*="bg-[#18181d]"] span,
+body.light-theme aside [class*="bg-[#16161a]"] span,
+body.light-theme aside [class*="bg-[#141418]"] span {
+  color: #09090b !important;
+}
+
+/* Sidebar Bottom Utility Buttons, Auth Profile Card & Search Box */
+body.light-theme aside [class*="bg-[#0d0d11]"],
 body.light-theme aside button[class*="bg-[#101014]"],
 body.light-theme aside [class*="bg-[#101013]"] {
   background-color: #ffffff !important;
@@ -140,7 +156,7 @@ body.light-theme aside button[class*="bg-amber-950"] svg {
   color: #b45309 !important;
 }
 
-body.light-theme aside .text-white,
+body.light-theme aside .text-white:not(.kz-brand-badge),
 body.light-theme aside [class*="text-[#d4d4d8]"],
 body.light-theme aside p {
   color: #18181b !important;
@@ -449,7 +465,7 @@ body.light-theme [class*="bg-zinc-800/60"] svg {
 
 /* 2. Expanded Reasoning Thought Drawer & Inner Badges */
 body.light-theme [class*="bg-zinc-900/90"],
-body.light-theme [class*="bg-zinc-900"]:not(.contain-message),
+body.light-theme [class*="bg-zinc-900"]:not(.contain-message):not(.primary-voice-send-btn):not(.kimi-pill-active):not(.kz-brand-badge),
 body.light-theme [class*="bg-[#151518]"],
 body.light-theme [class*="bg-[#15151f]"],
 body.light-theme [class*="bg-[#14141d]"],
@@ -552,12 +568,6 @@ body.light-theme .chat-input-container-fluid {
 
 body.light-theme .chat-input-container-fluid textarea {
   color: #18181b !important;
-}
-
-  code, pre, kbd, samp, .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-variant-numeric: tabular-nums;
-  }
 }
 
 /* Custom Neutral Scrollbar */
@@ -1315,6 +1325,20 @@ body.light-theme .kimi-pill-btn.kimi-pill-active {
 
 body.light-theme .kimi-pill-btn.kimi-pill-active span,
 body.light-theme .kimi-pill-btn.kimi-pill-active svg {
+  color: #ffffff !important;
+}
+
+body.light-theme .kimi-pill-btn.kimi-pill-active span.font-mono {
+  color: #d4d4d8 !important;
+}
+
+body.light-theme .primary-voice-send-btn {
+  background-color: #18181b !important;
+  color: #ffffff !important;
+}
+
+body.light-theme .primary-voice-send-btn span,
+body.light-theme .primary-voice-send-btn svg {
   color: #ffffff !important;
 }
 

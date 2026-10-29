@@ -1783,17 +1783,52 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                 Follow up
               </p>
               <div className="flex flex-col gap-1.5">
-                {dynamicFollowUps.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onSelectFollowUp?.(item)}
-                    className="flex items-start gap-2.5 text-left text-sm text-zinc-700 dark:text-zinc-200 hover:text-amber-600 dark:hover:text-amber-400 transition-colors group w-full py-2 cursor-pointer font-medium min-h-[44px]"
-                  >
-                    <span className="text-amber-500 font-mono text-base shrink-0 mt-0.5">↳</span>
-                    <span className="leading-snug text-[15.5px] sm:text-[16px]">{item}</span>
-                  </button>
-                ))}
+                {dynamicFollowUps.map((item, idx) => {
+                  const cleanPromptText = item
+                    .replace(/\*\*([^*]+)\*\*/g, '$1')
+                    .replace(/\*([^*]+)\*/g, '$1')
+                    .replace(/`([^`]+)`/g, '$1');
+                  const tokens = item.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => onSelectFollowUp?.(cleanPromptText)}
+                      className="flex items-start gap-2.5 text-left text-sm text-zinc-700 dark:text-zinc-200 hover:text-amber-600 dark:hover:text-amber-400 transition-colors group w-full py-2 cursor-pointer font-medium min-h-[44px]"
+                    >
+                      <span className="text-amber-500 font-mono text-base shrink-0 mt-0.5">↳</span>
+                      <span className="leading-snug text-[15.5px] sm:text-[16px]">
+                        {tokens.map((part, pIdx) => {
+                          if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                            return (
+                              <strong key={pIdx} className="font-bold text-zinc-900 dark:text-white">
+                                {part.slice(2, -2)}
+                              </strong>
+                            );
+                          }
+                          if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+                            return (
+                              <em key={pIdx} className="italic text-zinc-800 dark:text-zinc-100">
+                                {part.slice(1, -1)}
+                              </em>
+                            );
+                          }
+                          if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+                            return (
+                              <code
+                                key={pIdx}
+                                className="px-1 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 font-mono text-[13.5px] text-zinc-900 dark:text-zinc-100"
+                              >
+                                {part.slice(1, -1)}
+                              </code>
+                            );
+                          }
+                          return <React.Fragment key={pIdx}>{part}</React.Fragment>;
+                        })}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

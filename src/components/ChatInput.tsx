@@ -2108,7 +2108,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
             {isReasoningDeep ? (
               <span className="text-[10px] text-zinc-300 font-mono">• ON</span>
             ) : isReasoningLight ? (
-              <span className="text-[10px] text-zinc-400 font-mono">• Ágil</span>
+              <span className="text-[10px] text-zinc-300 font-mono">• Ágil</span>
             ) : null}
           </button>
         )}
@@ -2323,7 +2323,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                   type="button"
                   onClick={() => stopActiveDictationWithAction('send')}
                   disabled={isTranscribingAsr}
-                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-900 text-white md:hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:md:hover:bg-zinc-200 dark:active:bg-zinc-300 flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-sm touch-manipulation disabled:opacity-50"
+                  className="primary-voice-send-btn w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-900 text-white md:hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:md:hover:bg-zinc-200 dark:active:bg-zinc-300 flex items-center justify-center shrink-0 transition-colors cursor-pointer shadow-sm touch-manipulation disabled:opacity-50"
                   title="Detener y enviar mensaje"
                   aria-label="Enviar mensaje por voz"
                 >
@@ -2400,7 +2400,7 @@ export const ChatInput: React.FC<ChatInputProps> = React.memo(({
                       toggleListening();
                     }
                   }}
-                  className="w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-900 text-white md:hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:md:hover:bg-zinc-200 dark:active:bg-zinc-300 transition-colors duration-150 cursor-pointer select-none shadow-sm shrink-0 flex items-center justify-center touch-manipulation relative overflow-hidden"
+                  className="primary-voice-send-btn w-[38px] h-[38px] min-w-[38px] min-h-[38px] rounded-full bg-zinc-900 text-white md:hover:bg-zinc-800 active:bg-zinc-700 dark:bg-white dark:text-black dark:md:hover:bg-zinc-200 dark:active:bg-zinc-300 transition-colors duration-150 cursor-pointer select-none shadow-sm shrink-0 flex items-center justify-center touch-manipulation relative overflow-hidden"
                   title={
                     isStreaming
                       ? 'Detener generación'
