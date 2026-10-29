@@ -43,6 +43,7 @@ import { LivingInkDrop } from './LivingInkDrop';
 import { CodeBlockCanvas } from './CodeBlockCanvas';
 import { GenerativeCanvasCard } from './GenerativeCanvasCard';
 import { WikiSectionHeading, InlineSourcePill, WebSearchPillsRow } from './WikiSectionHeading';
+import { extractCandidateQueryFromHeading } from '../utils/wikipediaEnricher';
 import { Message, Attachment, LoreFile } from '../types';
 import { saveTextToGoogleDriveDoc, extractCleanDraftWithDeepSeek } from '../services/googleDriveService';
 
@@ -989,12 +990,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
     if (!sanitizedContent) return null;
 
     // Normalize standalone numbered or encyclopedic bold lines (e.g. "**2. La Noche de los Bastones Largos (1966)**" or "**Fiódor Dostoyevski**")
-    // into ### headings when not actively streaming so they also receive Wikipedia side-by-side cards
+    // into ### headings ONLY when they pass encyclopedic entity validation
     if (!isUser && !message.isStreaming) {
       sanitizedContent = sanitizedContent.replace(
         /^(\s*)(?:\*\*(\d+[\.\)]\s+[^*\n]{4,80})\*\*|(\d+[\.\)]\s+)\*\*([^*\n]{4,80})\*\*|\*\*([A-ZÁÉÍÓÚÑ¿][^*\n.!?]{3,60})\*\*)\s*$/gm,
-        (_m, indent, fullBold, numPrefix, boldTitle, standaloneBold) => {
+        (fullMatch, indent, fullBold, numPrefix, boldTitle, standaloneBold) => {
           const headingText = fullBold || (numPrefix && boldTitle ? `${numPrefix}${boldTitle}` : standaloneBold);
+          if (!extractCandidateQueryFromHeading(headingText)) {
+            return fullMatch;
+          }
           return `${indent}### ${headingText}`;
         }
       );
