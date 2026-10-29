@@ -3706,14 +3706,44 @@ Ofrece un diagnóstico estructurado y recomendaciones de mejora de diseño.`;
       }
     }
 
-    if (!targetMsg || !targetMsg.content.trim()) return;
+    if (!targetMsg) return;
 
-    const cleanExisting = targetMsg.content
+    const cleanExisting = (targetMsg.content || '')
       .replace(/<<<FOLLOW_UP>>>[\s\S]*$/i, '')
       .replace(/<<<SAVE_MEMORY:[\s\S]*?>>>/gi, '')
+      .replace(/\*\(El modelo completó su proceso reflexivo[\s\S]*?\)\.\*/gi, '')
       .trimEnd();
 
-    if (!cleanExisting) return;
+    if (!cleanExisting) {
+      const targetIdx = msgs.findIndex((m) => m.id === targetMsg!.id);
+      let precedingUserMsg: Message | undefined;
+      for (let i = (targetIdx !== -1 ? targetIdx - 1 : msgs.length - 1); i >= 0; i--) {
+        if (msgs[i].role === 'user') {
+          precedingUserMsg = msgs[i];
+          break;
+        }
+      }
+      if (!precedingUserMsg) return;
+
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === activeChat.id
+            ? {
+                ...c,
+                messages: c.messages.map((m) =>
+                  m.id === targetMsg!.id
+                    ? { ...m, isStreaming: true, isInterrupted: false, error: undefined }
+                    : m
+                ),
+                updatedAt: Date.now(),
+              }
+            : c
+        )
+      );
+      showToast('▶️ Redactando respuesta pendiente...');
+      handleSendMessage(precedingUserMsg.content, precedingUserMsg.attachments || [], targetMsg.id, undefined, false, undefined);
+      return;
+    }
 
     showToast('▶️ Continuando respuesta desde donde se cortó...');
     handleSendMessage('Continúa.', [], targetMsg.id, false, false, cleanExisting);

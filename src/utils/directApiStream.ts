@@ -718,85 +718,97 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65000);
 
-    const altAlibabaEndpoint = isAlibaba
+    const isSkWsKey = apiKey.trim().startsWith('sk-ws-');
+    const altAlibabaEndpoint = isAlibaba && !isSkWsKey
       ? `${(baseUrl.includes('.maas.aliyuncs.com') ? intlAlibabaUrl : wsAlibabaUrl)}/chat/completions`
       : null;
 
     const endpointsToTry = [
       endpointToUse,
       ...(altAlibabaEndpoint ? [altAlibabaEndpoint] : []),
-      `https://corsproxy.io/?${encodeURIComponent(endpointToUse)}`,
+      ...(isSkWsKey ? [] : [`https://corsproxy.io/?${encodeURIComponent(endpointToUse)}`]),
     ];
 
     for (const ep of endpointsToTry) {
-      try {
-        const res = await fetch(ep, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey.trim()}`,
-            'Accept': 'text/event-stream',
-            ...(isAlibaba ? { 'X-DashScope-CacheControl': 'enable', 'x-dashscope-session-cache': 'enable' } : {}),
-          },
-          signal: signal ? (AbortSignal.any ? AbortSignal.any([signal, controller.signal]) : controller.signal) : controller.signal,
-          body: JSON.stringify(payload),
-        });
+      let succeededOnEp = false;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey.trim()}`,
+              'Accept': 'text/event-stream',
+              ...(isAlibaba ? { 'X-DashScope-CacheControl': 'enable', 'x-dashscope-session-cache': 'enable' } : {}),
+            },
+            signal: signal ? (AbortSignal.any ? AbortSignal.any([signal, controller.signal]) : controller.signal) : controller.signal,
+            body: JSON.stringify(payload),
+          });
 
-        clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
 
-        if (!res.ok) {
-          const errorText = await res.text().catch(() => "Sin detalle");
-          // Recovery: max_tokens ceiling exceeded (step down gradually: 8192 -> 4096 -> 2048 instead of dropping straight to 2048)
-          if (res.status === 400 && /max_tokens|Range of max_tokens/i.test(errorText) && payload.max_tokens > 2048) {
-            const matchMax = errorText.match(/(?:maximum value is|range of max_tokens should be \[\d+,\s*|less than or equal to\s*|in \[\d+,\s*)(\d+)/i);
-            const nextSafeMax = matchMax && matchMax[1]
-              ? parseInt(matchMax[1], 10)
-              : payload.max_tokens > 8192
-                ? 8192
-                : payload.max_tokens > 4096
-                  ? 4096
-                  : 2048;
-            console.warn(`[directApiStream] Límite de max_tokens excedido. Reintentando con max_tokens: ${nextSafeMax}...`);
-            payload.max_tokens = nextSafeMax;
-            continue;
+          if (!res.ok) {
+            const errorText = await res.text().catch(() => "Sin detalle");
+            // Recovery: max_tokens ceiling exceeded (step down gradually: 8192 -> 4096 -> 2048)
+            if (res.status === 400 && /max_tokens|Range of max_tokens/i.test(errorText) && payload.max_tokens > 2048) {
+              const matchMax = errorText.match(/(?:maximum value is|range of max_tokens should be \[\d+,\s*|less than or equal to\s*|in \[\d+,\s*)(\d+)/i);
+              const nextSafeMax = matchMax && matchMax[1]
+                ? parseInt(matchMax[1], 10)
+                : payload.max_tokens > 8192
+                  ? 8192
+                  : payload.max_tokens > 4096
+                    ? 4096
+                    : 2048;
+              console.warn(`[directApiStream] Límite de max_tokens excedido. Reintentando en ${ep} con max_tokens: ${nextSafeMax}...`);
+              payload.max_tokens = nextSafeMax;
+              continue;
+            }
+            // Recovery: free trial quota exhausted on flagship models
+            if (
+              (res.status === 400 || res.status === 402 || res.status === 403 || res.status === 429) &&
+              /quota|exhausted|free_quota|Free Quota|limit_exceeded|Out of quota/i.test(errorText) &&
+              isAlibaba &&
+              payload.model !== 'qwen-plus'
+            ) {
+              const nextQuotaModel = payload.model === 'qwen3.8-max' ? 'qwen3.7-plus' : 'qwen-plus';
+              console.warn(`[directApiStream] Quota agotada para ${payload.model}. Alternando en ${ep} a ${nextQuotaModel}...`);
+              payload.model = nextQuotaModel;
+              payload.max_tokens = Math.min(payload.max_tokens || 8192, 8192);
+              continue;
+            }
+            // Recovery: model not found or unavailable on Alibaba compatible-mode (retry on the SAME endpoint!)
+            if (
+              (res.status === 404 || res.status === 403 || res.status === 400) &&
+              /model_not_found|Model not exist|Access to model denied|ModelNotOpen|does not exist|invalid_model/i.test(errorText) &&
+              isAlibaba &&
+              payload.model !== 'qwen-max'
+            ) {
+              const reqLow = String(payload.model || '').toLowerCase();
+              const nextFallback =
+                reqLow !== 'qwen3.8-max' && reqLow !== 'qwen-plus' && reqLow !== 'qwen-max'
+                  ? 'qwen3.8-max'
+                  : reqLow === 'qwen3.8-max'
+                    ? 'qwen-plus'
+                    : 'qwen-max';
+              console.warn(`[directApiStream] Modelo "${payload.model}" no disponible en ${ep}. Reintentando mismo endpoint con "${nextFallback}"...`);
+              payload.model = nextFallback;
+              payload.max_tokens = Math.min(payload.max_tokens || 8192, 8192);
+              continue;
+            }
+            throw new Error(`[HTTP ${res.status}] ${res.statusText || 'Error del servidor'}: ${errorText}`);
           }
-          // Recovery: free trial quota exhausted on qwen3.8-max or flagship models
-          if (
-            (res.status === 400 || res.status === 402 || res.status === 403 || res.status === 429) &&
-            /quota|exhausted|free_quota|Free Quota|limit_exceeded|Out of quota/i.test(errorText) &&
-            isAlibaba &&
-            payload.model !== 'qwen3.7-plus' &&
-            payload.model !== 'qwen-plus'
-          ) {
-            console.warn(`[directApiStream] Quota agotada para ${payload.model}. Alternando automáticamente a qwen3.7-plus (Caché KV activa)...`);
-            payload.model = 'qwen3.7-plus';
-            payload.max_tokens = Math.min(payload.max_tokens || 8192, 8192);
-            continue;
-          }
-          // Recovery: model not found or unavailable on Alibaba compatible-mode
-          if ((res.status === 404 || res.status === 403 || /model_not_found|Model not exist|Access to model denied/i.test(errorText)) && isAlibaba && payload.model !== 'qwen3.7-plus' && payload.model !== 'qwen-plus') {
-            const reqLow = String(payload.model || '').toLowerCase();
-            const nextFallback = reqLow === 'qwen3.7-plus' ? 'qwen-plus' : 'qwen3.7-plus';
-            console.warn(`[directApiStream] Modelo no disponible. Reintentando con ${nextFallback}...`);
-            payload.model = nextFallback;
-            payload.max_tokens = Math.min(payload.max_tokens || 8192, 8192);
-            continue;
-          }
-          throw new Error(`[HTTP ${res.status}] ${res.statusText || 'Error del servidor'}: ${errorText}`);
+
+          response = res;
+          succeededOnEp = true;
+          break;
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          if (signal?.aborted) return;
+          lastErrorMsg = fetchErr?.message || `Error de red al consultar ${ep}`;
+          break;
         }
-
-        response = res;
-        break;
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId);
-        const isAbort =
-          fetchErr?.name === 'AbortError' ||
-          fetchErr?.name === 'DOMException' ||
-          fetchErr?.code === 20 ||
-          signal?.aborted;
-        if (isAbort) return;
-        lastErrorMsg = fetchErr?.message || `Error de red al consultar ${ep}`;
       }
+      if (succeededOnEp) break;
     }
 
     clearTimeout(timeoutId);

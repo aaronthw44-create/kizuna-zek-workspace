@@ -1211,7 +1211,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
   return (
     <div
-      className={`contain-message select-none group w-full py-4 sm:py-5 px-4 sm:px-6 md:px-8 transition-colors ${
+      className={`contain-message relative ${showActionMenu ? 'z-40' : 'z-0'} select-none group w-full py-4 sm:py-5 px-4 sm:px-6 md:px-8 transition-colors ${
         isUser ? 'bg-transparent' : 'bg-transparent sm:dark:bg-zinc-900/20 border-y border-zinc-200/40 dark:border-zinc-800/30'
       }`}
     >
@@ -1827,7 +1827,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
               {/* Left: Streamlined Action Bar (Primary buttons + ··· Overflow Menu) */}
               <div
                 ref={actionMenuRef}
-                className="relative flex items-center gap-1 sm:gap-1.5 flex-wrap opacity-95 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150"
+                className={`relative flex items-center gap-1 sm:gap-1.5 flex-wrap transition-opacity duration-150 ${
+                  showActionMenu ? 'opacity-100 z-50' : 'opacity-95 md:opacity-0 md:group-hover:opacity-100'
+                }`}
               >
                 {message.variants && message.variants.length > 1 && (
                   <div className="flex items-center gap-0.5 font-mono text-[11px] text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-lg p-0.5 shrink-0 shadow-xs mr-1">
@@ -2009,7 +2011,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                             transition: { duration: 0.14 },
                           },
                         }}
-                        className="absolute left-0 bottom-full mb-2 z-50 w-60 max-w-[calc(100vw-2rem)] p-1.5 rounded-[22px] bg-white/95 dark:bg-[#13131a]/95 border border-zinc-200 dark:border-white/12 shadow-[0_24px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl flex flex-col gap-0.5 select-none origin-bottom-left"
+                        className="absolute left-0 bottom-full mb-2 z-50 w-60 max-w-[calc(100vw-2rem)] p-1.5 rounded-[22px] bg-white dark:bg-[#111116] border border-zinc-200 dark:border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.95)] backdrop-blur-2xl flex flex-col gap-0.5 select-none origin-bottom-left"
                       >
                         {!isUser && onIllustrateScene && (
                           <motion.button

@@ -2631,8 +2631,14 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
           }
         }
 
-        // Auto-recovery 0b: If Alibaba endpoint returns HTTP 403/401/404 (e.g. "Workspace endpoint access denied" when using sk-... on ws-* or vice-versa), auto-switch endpoint!
-        if (isAlibaba && !response.ok && (response.status === 403 || response.status === 401 || response.status === 404 || /Workspace endpoint access denied|Access denied|Forbidden/i.test(errorBody))) {
+        // Auto-recovery 0b: Only switch Alibaba endpoint if error explicitly indicates Workspace endpoint access denied (never on 404 model_not_found!)
+        const isModelNotFoundErr = /model_not_found|Model not exist|ModelNotOpen|does not exist|invalid_model/i.test(errorBody);
+        if (
+          isAlibaba &&
+          !response.ok &&
+          !isModelNotFoundErr &&
+          /Workspace endpoint access denied/i.test(errorBody)
+        ) {
           const altAlibabaBase = customBaseUrl.includes('.maas.aliyuncs.com') ? intlAlibabaUrl : wsAlibabaUrl;
           const altTargetUrl = `${altAlibabaBase}/chat/completions`;
           console.warn(`[Server Custom Provider] HTTP ${response.status} en ${customTargetUrl}. Conmutando automáticamente al endpoint alternativo: ${altTargetUrl}...`);
@@ -2743,21 +2749,24 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
           }
         }
 
-        // Auto-recovery 4: If target model is not found or not authorized on this endpoint, try tier-matched Singapore Qwen models across both endpoints
-        if (!response.ok && (response.status === 404 || response.status === 403 || response.status === 400) && /model_not_found|Model not exist|Access to model denied|Workspace endpoint access denied|ModelNotOpen|does not exist/i.test(errorBody) && isAlibaba) {
+        // Auto-recovery 4: If target model is not found or not authorized on this endpoint, try tier-matched Singapore Qwen models on the active endpoint first
+        if (!response.ok && (response.status === 404 || response.status === 403 || response.status === 400) && /model_not_found|Model not exist|Access to model denied|Workspace endpoint access denied|ModelNotOpen|does not exist|invalid_model/i.test(errorBody) && isAlibaba) {
           const requestedLower = String(nvidiaPayload.model || '').toLowerCase();
           const tierFallbacks = requestedLower.includes('plus')
-            ? ['qwen3.8-plus', 'qwen-plus', 'qwen3.8-max']
+            ? ['qwen3.8-plus', 'qwen-plus', 'qwen3.8-max', 'qwen-max']
             : requestedLower.includes('flash')
-              ? ['qwen3.8-flash', 'qwen3.8-omni-flash', 'qwen-plus']
+              ? ['qwen3.8-flash', 'qwen3.8-omni-flash', 'qwen-plus', 'qwen-turbo']
               : requestedLower.includes('a95b')
-                ? ['qwen3.8-max', 'qwen3.8-plus', 'qwen-plus']
+                ? ['qwen3.8-max', 'qwen3.8-plus', 'qwen-plus', 'qwen-max']
                 : ['qwen3.8-max', 'qwen-max', 'qwen-plus'];
           const fallbackCandidates = tierFallbacks.filter((m) => m !== nvidiaPayload.model);
-          const candidateUrls = [
-            customTargetUrl,
-            `${customBaseUrl.includes('.maas.aliyuncs.com') ? intlAlibabaUrl : wsAlibabaUrl}/chat/completions`,
-          ];
+          const isSkWsKeyNow = customApiKey.trim().startsWith('sk-ws-');
+          const candidateUrls = isSkWsKeyNow
+            ? [customTargetUrl]
+            : [
+                customTargetUrl,
+                `${customBaseUrl.includes('.maas.aliyuncs.com') ? intlAlibabaUrl : wsAlibabaUrl}/chat/completions`,
+              ];
           for (const fbUrl of candidateUrls) {
             if (response.ok) break;
             for (const fbModel of fallbackCandidates) {
@@ -2820,6 +2829,7 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
 
       const accumulatedToolCalls: Array<{ id: string; name: string; arguments: string }> = [];
       let accumulatedAssistantContent = '';
+      let accumulatedReasoning = '';
       let hasToolCalls = false;
       let isInsideXmlToolCall = false;
       let pendingTagBuffer = '';
@@ -2920,7 +2930,11 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
             }
 
             if (reasoning) {
-              sendChunk({ reasoning });
+              accumulatedReasoning += reasoning;
+              const cleanReasoning = reasoning.replace(/<tool_call>[\s\S]*?(?:<\/tool_call>|$)/gi, '');
+              if (cleanReasoning) {
+                sendChunk({ reasoning: cleanReasoning });
+              }
             }
             if (content) {
               accumulatedAssistantContent += content;
@@ -2986,8 +3000,9 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
         pendingTagBuffer = '';
       }
 
-      // Detectar y extraer etiquetas de texto <tool_call> emitidas por Qwen en deltaObj.content
-      const xmlToolMatches = [...accumulatedAssistantContent.matchAll(/<tool_call>\s*([\s\S]*?)\s*(?:<\/tool_call>|$)/gi)];
+      // Detectar y extraer etiquetas de texto <tool_call> emitidas por Qwen en deltaObj.content o deltaObj.reasoning_content
+      const combinedToolSearchSource = `${accumulatedAssistantContent}\n${accumulatedReasoning}`;
+      const xmlToolMatches = [...combinedToolSearchSource.matchAll(/<tool_call>\s*([\s\S]*?)\s*(?:<\/tool_call>|$)/gi)];
       if (xmlToolMatches.length > 0 && accumulatedToolCalls.length === 0) {
         hasToolCalls = true;
         for (let idx = 0; idx < xmlToolMatches.length; idx++) {
@@ -3135,7 +3150,9 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
 - No repitas un razonamiento largo: ve directo a redactar la respuesta final completa y bien estructurada para el usuario.`;
 
         const stripToolDirective = (txt: string) =>
-          txt.replace(/### DIRECTIVA DE AGENTE DE BÚSQUEDA WEB AUTÓNOMA[\s\S]*?PROHIBIDO emitir más de un bloque <tool_call> por turno\./gi, '');
+          txt
+            .replace(/### DIRECTIVA DEL GRIMORIO WEB[\s\S]*?PROHIBIDO emitir más de un bloque <tool_call> por turno\./gi, '')
+            .replace(/### DIRECTIVA DE AGENTE DE BÚSQUEDA WEB AUTÓNOMA[\s\S]*?PROHIBIDO emitir más de un bloque <tool_call> por turno\./gi, '');
 
         const enrichedMessages = openAiMessages.map((m, idx) => {
           let cleanedMsg = { ...m };
@@ -3284,6 +3301,66 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
             }
             if (done) break;
           }
+        }
+      } else if (accumulatedReasoning.trim().length > 0 && accumulatedAssistantContent.trim().length === 0) {
+        // Safeguard: If the model spent its pass generating reasoning_content and stopped before emitting prose content,
+        // automatically trigger a direct synthesis pass (without double-thinking) so the response is never left at 0 tokens.
+        console.log('[Server Reasoning Synthesis]: El modelo completó reasoning sin emitir content. Ejecutando síntesis directa...');
+        const synthesisSummary = `\n\n[TU RAZONAMIENTO INTERNO YA COMPLETADO]:\n${accumulatedReasoning.slice(-4000)}\n\n[DIRECTIVA DE REDACCIÓN INMEDIATA]:\nYa completaste tu proceso reflexivo interno. Redacta de inmediato la respuesta final completa y bien estructurada para el usuario basándote en tu análisis anterior, sin preámbulos meta.`;
+        const synthesisMessages = openAiMessages.map((m, idx) => {
+          if (idx === openAiMessages.length - 1 && m.role === 'user') {
+            if (Array.isArray(m.content)) {
+              return { ...m, content: [...m.content, { type: 'text', text: synthesisSummary }] };
+            }
+            return { ...m, content: `${m.content || ''}${synthesisSummary}` };
+          }
+          return m;
+        });
+        const synthesisPayload: any = {
+          ...nvidiaPayload,
+          messages: synthesisMessages,
+          enable_thinking: false,
+        };
+        delete synthesisPayload.thinking_budget;
+        if (synthesisPayload.extra_body) {
+          synthesisPayload.extra_body = { ...synthesisPayload.extra_body, enable_thinking: false };
+          delete synthesisPayload.extra_body.thinking_budget;
+        }
+        try {
+          const synthRes = await fetch(customTargetUrl, {
+            method: 'POST',
+            headers: nvidiaHeaders,
+            body: JSON.stringify(synthesisPayload),
+            keepalive: true,
+          });
+          if (synthRes.ok && synthRes.body) {
+            const synthReader = synthRes.body.getReader();
+            let synthBuffer = '';
+            while (true) {
+              const { done, value } = await synthReader.read();
+              if (value) synthBuffer += decoder.decode(value, { stream: !done });
+              else if (done) synthBuffer += decoder.decode();
+              const lines = synthBuffer.split('\n');
+              synthBuffer = done ? '' : (lines.pop() || '');
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || !trimmed.startsWith('data:')) continue;
+                const jsonStr = trimmed.replace(/^data:\s*/, '');
+                if (jsonStr === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const rawContent = parsed.choices?.[0]?.delta?.content;
+                  if (rawContent) {
+                    const clean = rawContent.replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, '');
+                    if (clean) sendChunk({ text: clean });
+                  }
+                } catch {}
+              }
+              if (done) break;
+            }
+          }
+        } catch (synthErr) {
+          console.warn('[Server Reasoning Synthesis Error]:', synthErr);
         }
       }
 
