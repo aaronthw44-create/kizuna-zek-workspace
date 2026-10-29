@@ -9,7 +9,7 @@ import {
 import { Attachment } from '../types';
 
 interface WikiSectionHeadingProps {
-  level: 'h2' | 'h3';
+  level: 'h1' | 'h2' | 'h3' | 'h4';
   children: React.ReactNode;
   isUser?: boolean;
   isStreaming?: boolean;
@@ -63,14 +63,26 @@ export const WikiSectionHeading: React.FC<WikiSectionHeadingProps> = ({
 
   const Tag = level;
   const headingClassName =
-    level === 'h2'
-      ? 'text-xl font-bold text-zinc-900 dark:text-white tracking-tight break-words'
-      : 'text-lg font-semibold text-zinc-900 dark:text-white break-words';
+    level === 'h1'
+      ? 'text-2xl font-bold text-zinc-900 dark:text-white tracking-tight break-words'
+      : level === 'h2'
+        ? 'text-xl font-bold text-zinc-900 dark:text-white tracking-tight break-words'
+        : level === 'h3'
+          ? 'text-lg font-semibold text-zinc-900 dark:text-white break-words'
+          : 'text-base sm:text-lg font-semibold text-zinc-800 dark:text-[#f4f4f5] break-words';
 
   // Standard fallback heading when there is no verified Wikipedia visual match
   if (!wikiMatch || imgError || !wikiMatch.thumbnailUrl) {
+    const spacingClass =
+      level === 'h1'
+        ? 'mt-4 mb-2 border-b border-zinc-200 dark:border-[#262626] pb-1'
+        : level === 'h2'
+          ? 'mt-3.5 mb-1.5'
+          : level === 'h3'
+            ? 'mt-3 mb-1'
+            : 'mt-2.5 mb-1';
     return (
-      <Tag className={`${headingClassName} ${level === 'h2' ? 'mt-3.5 mb-1.5' : 'mt-3 mb-1'}`}>
+      <Tag className={`${headingClassName} ${spacingClass}`}>
         {children}
       </Tag>
     );
@@ -79,7 +91,7 @@ export const WikiSectionHeading: React.FC<WikiSectionHeadingProps> = ({
   const badgeInfo = getCleanDomainBadgeLabel(wikiMatch.pageUrl, 'Wikipedia');
 
   return (
-    <div className="my-3.5 p-2.5 sm:p-3.5 rounded-2xl bg-zinc-100/70 dark:bg-neutral-950/90 border border-zinc-200/80 dark:border-neutral-800/90 flex flex-row items-start gap-4 max-w-full overflow-hidden shadow-xs transition-all">
+    <div className="my-3.5 p-2.5 sm:p-3.5 rounded-2xl bg-zinc-100/70 dark:bg-neutral-950/90 border border-zinc-200/80 dark:border-neutral-800/90 flex flex-row items-start gap-4 max-w-full shadow-xs transition-all">
       {/* Left Thumbnail (ChatGPT Rich Encyclopedic Card Style) */}
       <button
         type="button"
@@ -96,17 +108,18 @@ export const WikiSectionHeading: React.FC<WikiSectionHeadingProps> = ({
             });
           }
         }}
-        className="group/wikithumb relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-md shrink-0 cursor-pointer focus:outline-none"
+        className="group/wikithumb relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-md shrink-0 cursor-pointer focus:outline-none select-none"
         title={`Ver imagen de ${wikiMatch.title}`}
       >
         <img
           src={wikiMatch.thumbnailUrl}
           alt={wikiMatch.title}
           loading="lazy"
+          draggable={false}
           onError={() => setImgError(true)}
-          className="w-full h-full object-cover grayscale-[20%] group-hover/wikithumb:grayscale-0 group-hover/wikithumb:scale-105 transition-all duration-300 ease-out"
+          className="w-full h-full object-cover grayscale-[20%] group-hover/wikithumb:grayscale-0 group-hover/wikithumb:scale-105 transition-all duration-300 ease-out select-none pointer-events-none"
         />
-        <div className="absolute inset-0 bg-black/35 opacity-0 group-hover/wikithumb:opacity-100 flex items-center justify-center transition-opacity">
+        <div className="absolute inset-0 bg-black/35 opacity-0 group-hover/wikithumb:opacity-100 flex items-center justify-center transition-opacity select-none">
           <Eye size={14} className="text-white drop-shadow" />
         </div>
       </button>
@@ -122,13 +135,14 @@ export const WikiSectionHeading: React.FC<WikiSectionHeadingProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-200/90 dark:bg-zinc-800/90 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-[11px] font-sans font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-300/80 dark:border-zinc-700 transition-colors shrink-0 no-underline"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-200/90 dark:bg-zinc-800/90 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-[11px] font-sans font-medium text-zinc-700 dark:text-zinc-200 border border-zinc-300/80 dark:border-zinc-700 transition-colors shrink-0 no-underline select-none"
             title={`Fuente verificada: ${wikiMatch.title} (${badgeInfo.hostname})`}
           >
             <img
               src={badgeInfo.faviconUrl}
               alt=""
-              className="w-3.5 h-3.5 rounded-full shrink-0"
+              draggable={false}
+              className="w-3.5 h-3.5 rounded-full shrink-0 select-none pointer-events-none"
               loading="lazy"
             />
             <span className="truncate max-w-[110px]">{badgeInfo.label}</span>
@@ -136,7 +150,7 @@ export const WikiSectionHeading: React.FC<WikiSectionHeadingProps> = ({
         </div>
 
         {wikiMatch.description && (
-          <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-1 font-normal m-0">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-1 font-normal m-0 select-none">
             {wikiMatch.description}
           </p>
         )}

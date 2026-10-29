@@ -988,27 +988,32 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
     if (!sanitizedContent) return null;
 
-    // Normalize standalone numbered bold lines (e.g. "**2. La Noche de los Bastones Largos (1966)**")
+    // Normalize standalone numbered or encyclopedic bold lines (e.g. "**2. La Noche de los Bastones Largos (1966)**" or "**Fiódor Dostoyevski**")
     // into ### headings when not actively streaming so they also receive Wikipedia side-by-side cards
     if (!isUser && !message.isStreaming) {
       sanitizedContent = sanitizedContent.replace(
-        /^(\s*)(?:\*\*(\d+[\.\)]\s+[^*\n]{4,80})\*\*|(\d+[\.\)]\s+)\*\*([^*\n]{4,80})\*\*)\s*$/gm,
-        (_m, indent, fullBold, numPrefix, boldTitle) => {
-          const headingText = fullBold || `${numPrefix}${boldTitle}`;
+        /^(\s*)(?:\*\*(\d+[\.\)]\s+[^*\n]{4,80})\*\*|(\d+[\.\)]\s+)\*\*([^*\n]{4,80})\*\*|\*\*([A-ZÁÉÍÓÚÑ¿][^*\n.!?]{3,60})\*\*)\s*$/gm,
+        (_m, indent, fullBold, numPrefix, boldTitle, standaloneBold) => {
+          const headingText = fullBold || (numPrefix && boldTitle ? `${numPrefix}${boldTitle}` : standaloneBold);
           return `${indent}### ${headingText}`;
         }
       );
     }
 
     return (
-      <div className="prose-noir select-text tracking-[0.012em] text-zinc-900 dark:text-zinc-100 space-y-3.5 break-words overflow-hidden max-w-full">
+      <div className="tracking-[0.012em] text-zinc-900 dark:text-zinc-100 space-y-3.5 break-words max-w-full">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
             h1: ({ children }) => (
-              <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mt-4 mb-2 tracking-tight border-b border-zinc-200 dark:border-[#262626] pb-1 break-words">
+              <WikiSectionHeading
+                level="h1"
+                isUser={isUser}
+                isStreaming={message.isStreaming}
+                onOpenImageLightbox={onOpenImageLightbox}
+              >
                 {highlightSearchText(children, searchHighlightQuery)}
-              </h1>
+              </WikiSectionHeading>
             ),
             h2: ({ children }) => (
               <WikiSectionHeading
@@ -1031,9 +1036,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
               </WikiSectionHeading>
             ),
             h4: ({ children }) => (
-              <h4 className="text-lg font-semibold text-zinc-800 dark:text-[#f4f4f5] mt-2 mb-1 break-words">
+              <WikiSectionHeading
+                level="h4"
+                isUser={isUser}
+                isStreaming={message.isStreaming}
+                onOpenImageLightbox={onOpenImageLightbox}
+              >
                 {highlightSearchText(children, searchHighlightQuery)}
-              </h4>
+              </WikiSectionHeading>
             ),
             p: ({ children }) => (
               <p className="text-zinc-800 dark:text-[#d4d4d8] mb-3.5 last:mb-0 font-normal break-words max-w-full">
@@ -1201,13 +1211,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
   return (
     <div
-      className={`contain-message group w-full py-4 sm:py-5 px-4 sm:px-6 md:px-8 transition-colors ${
+      className={`contain-message select-none group w-full py-4 sm:py-5 px-4 sm:px-6 md:px-8 transition-colors ${
         isUser ? 'bg-transparent' : 'bg-transparent sm:dark:bg-zinc-900/20 border-y border-zinc-200/40 dark:border-zinc-800/30'
       }`}
     >
       <div className="max-w-3xl lg:max-w-4xl mx-auto flex gap-3 md:gap-4">
         {/* Role Avatar Badge (Side column on tablet/desktop; inline on mobile so prose gets full screen width) */}
-        <div className="hidden sm:block shrink-0 mt-0.5">
+        <div className="hidden sm:block shrink-0 mt-0.5 select-none">
           {isUser ? (
             <div className="w-6 h-6 rounded-md bg-zinc-200 dark:bg-[#141418] border border-zinc-300 dark:border-[#222226] flex items-center justify-center text-[10px] font-mono font-semibold text-zinc-800 dark:text-white">
               U
@@ -1222,7 +1232,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
         {/* Message Content Container */}
         <div className="min-w-0 flex-1 space-y-2.5">
           {/* Header row: Author + Timestamp + Lore Indicators */}
-          <div className="flex items-center justify-between text-xs sm:text-[13px] font-mono text-zinc-500 dark:text-zinc-400">
+          <div className="flex items-center justify-between text-xs sm:text-[13px] font-mono text-zinc-500 dark:text-zinc-400 select-none">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="sm:hidden inline-flex items-center justify-center w-5 h-5 rounded bg-zinc-900 dark:bg-white text-white dark:text-black text-[9px] font-mono font-bold shrink-0">
                 {isUser ? 'U' : 'KZ'}
@@ -1257,7 +1267,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
           {/* Attached Media/Files if any */}
           {message.attachments && message.attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1 pb-2">
+            <div className="flex flex-wrap gap-2 pt-1 pb-2 select-none">
               {message.attachments.map((att) => {
                 const isVideo = Boolean(
                   att.fileType === 'video' ||
@@ -1591,12 +1601,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
               {/* Main Prose Content */}
               {(prose || isUser) && (
-                <div className="prose-noir select-text">
+                <div className="prose-noir message-prose-selectable select-text">
                   {formattedContentMemo}
 
                   {/* Gently glowing silver/white cursor dot tracking active token streaming */}
                   {message.isStreaming && (
-                    <span className="inline-flex items-center gap-2 ml-1.5 align-middle">
+                    <span className="inline-flex items-center gap-2 ml-1.5 align-middle select-none">
                       <span className="relative flex h-2.5 w-2.5">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60"></span>
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
@@ -1614,7 +1624,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
               {/* Botón para continuar respuesta únicamente cuando el modelo se corta o no termina su respuesta */}
               {isResponseCutOff && (onContinueMessage || onQuickPrompt) && (
-                <div className="mt-3 pt-1 flex items-center gap-2 flex-wrap animate-noir-enter">
+                <div className="mt-3 pt-1 flex items-center gap-2 flex-wrap animate-noir-enter select-none">
                   <motion.button
                     type="button"
                     whileTap={{ scale: 0.95 }}
@@ -1764,7 +1774,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
           )}
 
           {!isUser && !message.isStreaming && dynamicFollowUps.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-zinc-200/80 dark:border-zinc-800/60 animate-noir-enter">
+            <div className="mt-4 pt-3 border-t border-zinc-200/80 dark:border-zinc-800/60 animate-noir-enter select-none">
               <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-2 tracking-wide">
                 Follow up
               </p>
@@ -1785,7 +1795,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
           )}
 
           {isPersonaWizardChat && !isUser && cleanDisplayContent && !message.isStreaming && (
-            <div className="mt-2.5">
+            <div className="mt-2.5 select-none">
               <button
                 type="button"
                 onClick={() => onApplyGlobalPersona?.(cleanDisplayContent)}
@@ -1798,7 +1808,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
           )}
 
           {!isUser && !message.isStreaming && onContinueMessage && (isInterrupted || message.isInterrupted || isLastAssistant) && (
-            <div className="mt-2.5 flex items-center gap-2">
+            <div className="mt-2.5 flex items-center gap-2 select-none">
               <button
                 type="button"
                 onClick={() => onContinueMessage(message.id)}
@@ -1813,7 +1823,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
 
           {/* Discreet, Elegant Bottom Bar (Actions + Faint Text Metrics) */}
           {!message.isStreaming && !isEditing && (
-            <div className="mt-3 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/40 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-zinc-500">
+            <div className="mt-3 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/40 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-zinc-500 select-none">
               {/* Left: Streamlined Action Bar (Primary buttons + ··· Overflow Menu) */}
               <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap opacity-95 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
                 {message.variants && message.variants.length > 1 && (

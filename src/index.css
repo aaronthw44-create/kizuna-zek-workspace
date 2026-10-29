@@ -555,6 +555,49 @@ body.light-theme .chat-input-container-fluid textarea {
 /* Disable paint containment to prevent mobile Chrome GPU tile eviction flashes on long chapters */
 .contain-message {
   contain: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Strictly isolated text selection boundary per message turn so mobile selection handles never bleed into the whole chat */
+.message-prose-selectable,
+.message-prose-selectable p,
+.message-prose-selectable li,
+.message-prose-selectable ul,
+.message-prose-selectable ol,
+.message-prose-selectable blockquote,
+.message-prose-selectable h1,
+.message-prose-selectable h2,
+.message-prose-selectable h3,
+.message-prose-selectable h4,
+.message-prose-selectable strong,
+.message-prose-selectable b,
+.message-prose-selectable em,
+.message-prose-selectable span:not(.select-none),
+.message-prose-selectable code,
+.message-prose-selectable pre,
+.message-prose-selectable td,
+.message-prose-selectable th {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+.message-prose-selectable .select-none,
+.message-prose-selectable .select-none * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+.message-prose-selectable ::selection {
+  background-color: rgba(161, 161, 170, 0.34);
+  color: #ffffff;
+}
+
+body.light-theme .message-prose-selectable ::selection,
+html.light .message-prose-selectable ::selection {
+  background-color: rgba(39, 39, 42, 0.16);
+  color: #09090b;
 }
 
 /* Markdown prose for Noir aesthetic & Night Reading Comfort */
@@ -568,6 +611,8 @@ body.light-theme .chat-input-container-fluid textarea {
   font-size: var(--kz-prose-size, 17px);
   line-height: var(--kz-prose-leading, 1.62);
   letter-spacing: 0.005em;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .prose-noir p,
@@ -926,10 +971,13 @@ textarea:focus, input:focus {
    MOBILE 120HZ ULTRA-FLUID PERFORMANCE DIRECTIVES
    ========================================================= */
 @media (max-width: 768px) {
-  /* 1. Eliminate 300ms tap delay and double-tap zoom delay */
-  *, button, input, textarea, a {
-    touch-action: manipulation !important;
+  /* 1. Eliminate 300ms tap delay on interactive controls while keeping native touch-selection handles smooth on prose */
+  * {
     -webkit-tap-highlight-color: transparent !important;
+  }
+
+  button, input, textarea, a, label, summary, [role="button"] {
+    touch-action: manipulation !important;
   }
 
   /* 2. Native kinetic momentum scrolling on iOS and Android */

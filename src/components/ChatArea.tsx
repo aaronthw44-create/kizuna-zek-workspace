@@ -230,7 +230,7 @@ export const ChatArea = React.memo(
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden smooth-scroll flex flex-col relative select-text touch-pan-y pb-4 sm:pb-5 w-full max-w-full"
+      className="flex-1 overflow-y-auto overflow-x-hidden smooth-scroll flex flex-col relative select-none touch-pan-y pb-4 sm:pb-5 w-full max-w-full"
     >
       {/* Slim Top Lore Scanner Indicator (Non-occluding) */}
       {isAuditingLore && (

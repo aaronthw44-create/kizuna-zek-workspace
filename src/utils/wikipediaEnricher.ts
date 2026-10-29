@@ -13,10 +13,9 @@ export interface WikiVisualMatch {
 // Global in-memory + sessionStorage cache so each term is fetched at most once per session
 const wikiCache = new Map<string, WikiVisualMatch | null>();
 const inflightRequests = new Map<string, Promise<WikiVisualMatch | null>>();
-const SESSION_CACHE_PREFIX = 'kizuna_wiki_summary_v1:';
+const SESSION_CACHE_PREFIX = 'kizuna_wiki_summary_v2:';
 const WIKI_HEADERS: HeadersInit = {
   Accept: 'application/json',
-  'Api-User-Agent': 'KizunaZekApp/1.0 (creative-studio)',
 };
 
 function readSessionCache(key: string): { hit: boolean; value: WikiVisualMatch | null } {
@@ -38,6 +37,8 @@ function readSessionCache(key: string): { hit: boolean; value: WikiVisualMatch |
 
 function writeSessionCache(key: string, value: WikiVisualMatch | null): void {
   wikiCache.set(key, value);
+  // Only persist non-null matches to sessionStorage so transient network glitches never permanently block a heading
+  if (!value) return;
   try {
     sessionStorage.setItem(`${SESSION_CACHE_PREFIX}${key}`, JSON.stringify(value));
   } catch {
@@ -45,7 +46,7 @@ function writeSessionCache(key: string, value: WikiVisualMatch | null): void {
   }
 }
 
-// Headings that are structural/conversational/creative-writing markers and should NEVER query Wikipedia
+// Headings that are structural/conversational/creative-writing markers and should NEVER query Wikipedia on their own
 const GENERIC_HEADING_STOPWORDS = new Set([
   'introduccion',
   'conclusion',
@@ -113,12 +114,33 @@ const GENERIC_HEADING_STOPWORDS = new Set([
   'continuacion',
   'epilogo',
   'prologo',
+  'historia',
+  'origen',
+  'biografia',
+  'quien',
+  'que',
+]);
+
+// Fictional canon entities from Monstereth so we don't query real-world Wikipedia for them
+const FICTIONAL_LORE_STOPWORDS = new Set([
+  'kolder',
+  'zekshoyu',
+  'hinistra',
+  'zupsekia',
+  'monstereth',
+  'santusma',
+  'tedriot',
+  'teshuvana',
+  'gurasha',
+  'skarnita',
+  'jukkou',
+  'zankyou',
 ]);
 
 const TOKEN_STOPWORDS = new Set([
   'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'de', 'del', 'al', 'a', 'en',
   'con', 'por', 'para', 'sin', 'sobre', 'entre', 'hacia', 'hasta', 'desde', 'como',
-  'que', 'quien', 'cual', 'cuando', 'donde', 'como', 'fue', 'fueron', 'era', 'son',
+  'que', 'quien', 'cual', 'cuando', 'donde', 'fue', 'fueron', 'era', 'son',
   'es', 'su', 'sus', 'mi', 'tu', 'se', 'lo', 'le', 'les', 'y', 'o', 'u', 'e', 'ni',
   'no', 'si', 'mas', 'pero', 'the', 'of', 'in', 'and', 'to', 'for', 'on', 'with',
 ]);
@@ -143,41 +165,67 @@ export function extractCandidateQueryFromHeading(rawHeading: string): string | n
   // Strip leading numbering like "1.", "2)", "II.", "Paso 1:", emojis, or markdown markers
   let cleaned = rawHeading
     .replace(/^[\dIVXLCDM]+[\.\)\-:]\s*/i, '')
-    .replace(/^[^\wÁÉÍÓÚáéíóúÑñ¿¡]+/, '')
+    .replace(/^[^\wÁÉÍÓÚáéíóúÑñÜü¿¡]+/, '')
     .replace(/[*_`~#]/g, '')
     .trim();
 
-  if (!cleaned || cleaned.length < 4 || cleaned.length > 85) return null;
+  if (!cleaned || cleaned.length < 3 || cleaned.length > 95) return null;
 
-  // Reject conversational questions like "¿Cómo terminó su gobierno?" or "¿Qué pasó después?"
+  // Extract subject from common question headings like "¿Quién fue Fiódor Dostoyevski?" or "¿Qué es el Efecto Doppler?"
   if (cleaned.startsWith('¿') || cleaned.endsWith('?')) {
-    return null;
+    const qMatch = cleaned
+      .replace(/^[¿?]+|[¿?]+$/g, '')
+      .trim()
+      .match(/^(?:qu[ií]en\s+(?:fue|es|era)|qu[eé]\s+(?:fue|es|son|era)|c[oó]mo\s+funciona)\s+(.+)$/i);
+    if (qMatch && qMatch[1] && qMatch[1].trim().length >= 3) {
+      cleaned = qMatch[1].trim();
+    } else {
+      return null;
+    }
   }
 
   // Strip parenthetical years or short notes at the end for cleaner search, e.g. "La Noche de los Bastones Largos (1966)" -> "La Noche de los Bastones Largos"
-  // Keep the year if the heading itself is mostly a year/event
   const withoutParens = cleaned.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
-  const candidate = withoutParens.length >= 4 ? withoutParens : cleaned;
+  const candidate = withoutParens.length >= 3 ? withoutParens : cleaned;
 
-  // Split after colon if prefix is a generic label (e.g., "Evento 1: El Cordobazo")
+  // Split after colon or dash if prefix is a generic label (e.g., "Evento 1: El Cordobazo", "Fiódor Dostoyevski — El Idiota")
   let finalQuery = candidate;
   if (candidate.includes(':')) {
     const [left, right] = candidate.split(':', 2).map((s) => s.trim());
     const normLeft = normalizeText(left).split(' ')[0];
-    if (GENERIC_HEADING_STOPWORDS.has(normLeft) && right && right.length >= 4) {
+    if (GENERIC_HEADING_STOPWORDS.has(normLeft) && right && right.length >= 3) {
       finalQuery = right;
-    } else if (left && left.length >= 4 && left.length <= 45) {
+    } else if (left && left.length >= 3 && left.length <= 50) {
+      finalQuery = left;
+    }
+  } else if (/\s+[—–-]\s+/.test(candidate)) {
+    const [left, right] = candidate.split(/\s+[—–-]\s+/, 2).map((s) => s.trim());
+    const normLeft = normalizeText(left).split(' ')[0];
+    if (GENERIC_HEADING_STOPWORDS.has(normLeft) && right && right.length >= 3) {
+      finalQuery = right;
+    } else if (left && left.length >= 3 && left.length <= 50) {
       finalQuery = left;
     }
   }
+
+  // Strip generic leading editorial phrases like "Análisis de ", "Contexto de ", "Historia del ", "Biografía de "
+  finalQuery = finalQuery
+    .replace(
+      /^(?:el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(?:an[áa]lisis|contexto|resumen|s[íi]ntesis|historia|origen|or[íi]genes|biograf[íi]a|explicaci[óo]n|impacto|legado|estudio|perfil|caso|teor[íi]a|concepto)\s+(?:hist[óo]rico\s+|pol[íi]tico\s+|filos[óo]fico\s+|cient[íi]fico\s+)?(?:de\s+la\s+|de\s+los\s+|de\s+las\s+|del\s+|de\s+|sobre\s+el\s+|sobre\s+la\s+|sobre\s+)/i,
+      ''
+    )
+    .trim();
 
   const norm = normalizeText(finalQuery);
   if (!norm) return null;
 
   const words = norm.split(' ').filter(Boolean);
-  if (words.length === 0 || words.length > 8) return null;
+  if (words.length === 0 || words.length > 9) return null;
 
-  // If the first word or only significant word is a generic structural heading, skip
+  // Skip if it references Monstereth's fictional lore characters/terms
+  if (words.some((w) => FICTIONAL_LORE_STOPWORDS.has(w))) return null;
+
+  // If the first word or only significant word is still a generic structural heading, skip
   if (GENERIC_HEADING_STOPWORDS.has(words[0])) return null;
   const meaningfulWords = words.filter((w) => !TOKEN_STOPWORDS.has(w) && w.length > 2);
   if (meaningfulWords.length === 0) return null;
@@ -201,22 +249,29 @@ function isRelevantWikiMatch(query: string, wikiTitle: string, wikiExtract: stri
   }
 
   const qTokens = qNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length > 2);
-  const tTokens = new Set(tNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length > 2));
-  if (qTokens.length === 0) return false;
+  const tTokens = tNorm.split(' ').filter((w) => !TOKEN_STOPWORDS.has(w) && w.length > 2);
+  const tTokenSet = new Set(tTokens);
+  if (qTokens.length === 0 || tTokens.length === 0) return false;
 
   let overlap = 0;
   for (const token of qTokens) {
-    if (tTokens.has(token) || Array.from(tTokens).some((tw) => tw.startsWith(token) || token.startsWith(tw))) {
+    if (tTokenSet.has(token) || tTokens.some((tw) => tw.startsWith(token) || token.startsWith(tw))) {
       overlap++;
     }
   }
 
-  const ratio = overlap / qTokens.length;
-  if (ratio >= 0.6) return true;
+  const minLen = Math.min(qTokens.length, tTokens.length);
+  if (overlap / qTokens.length >= 0.5 || (minLen > 0 && overlap / minLen >= 0.65)) {
+    return true;
+  }
 
-  // Also check if the exact query appears in the first sentence of the extract
-  const firstSentence = normalizeText((wikiExtract || '').slice(0, 220));
-  if (qNorm.length >= 6 && firstSentence.includes(qNorm)) {
+  // Also check if the query tokens appear in the first sentence of the extract
+  const firstSentence = normalizeText((wikiExtract || '').slice(0, 260));
+  if (qNorm.length >= 5 && firstSentence.includes(qNorm)) {
+    return true;
+  }
+  const extractMatches = qTokens.filter((tok) => firstSentence.includes(tok)).length;
+  if (qTokens.length >= 2 && extractMatches / qTokens.length >= 0.75) {
     return true;
   }
 
@@ -269,7 +324,7 @@ function parseSummaryPayload(
 
 async function queryWikipediaByLang(query: string, lang: 'es' | 'en'): Promise<WikiVisualMatch | null> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3200);
+  const timeout = setTimeout(() => controller.abort(), 4500);
 
   try {
     // Step 1: Try official REST v1 summary endpoint directly first
@@ -289,7 +344,7 @@ async function queryWikipediaByLang(query: string, lang: 'es' | 'en'): Promise<W
     // Step 2: Fallback to MediaWiki search API for best canonical title match
     const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
       query
-    )}&srlimit=2&format=json&origin=*`;
+    )}&srlimit=3&format=json&origin=*`;
 
     const searchRes = await fetch(searchUrl, {
       headers: WIKI_HEADERS,
@@ -300,21 +355,26 @@ async function queryWikipediaByLang(query: string, lang: 'es' | 'en'): Promise<W
     const results = searchData?.query?.search;
     if (!Array.isArray(results) || results.length === 0) return null;
 
-    const bestTitle = results[0]?.title;
-    if (!bestTitle) return null;
+    // Step 3: Check top search results until one yields a verified summary with a thumbnail
+    for (const hit of results.slice(0, 3)) {
+      const bestTitle = hit?.title;
+      if (!bestTitle) continue;
 
-    // Step 3: Fetch REST v1 summary for the resolved canonical title
-    const summaryUrl = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
-      bestTitle.replace(/ /g, '_')
-    )}`;
-    const sumRes = await fetch(summaryUrl, {
-      headers: WIKI_HEADERS,
-      signal: controller.signal,
-    });
-    if (!sumRes.ok) return null;
+      const summaryUrl = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(
+        bestTitle.replace(/ /g, '_')
+      )}`;
+      const sumRes = await fetch(summaryUrl, {
+        headers: WIKI_HEADERS,
+        signal: controller.signal,
+      });
+      if (!sumRes.ok) continue;
 
-    const summary = await sumRes.json();
-    return parseSummaryPayload(query, summary, bestTitle, lang);
+      const summary = await sumRes.json();
+      const parsed = parseSummaryPayload(query, summary, bestTitle, lang);
+      if (parsed) return parsed;
+    }
+
+    return null;
   } catch {
     return null;
   } finally {

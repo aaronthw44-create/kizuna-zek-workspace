@@ -33,7 +33,7 @@ export interface WikiThumbnailProps {
 // Caché híbrida (Memoria + sessionStorage) para evitar consultas repetidas en la misma sesión
 const memoryThumbnailCache = new Map<string, string | null>();
 const inflightThumbnailRequests = new Map<string, Promise<string | null>>();
-const SESSION_STORAGE_PREFIX = 'kizuna_wiki_thumb_v1:';
+const SESSION_STORAGE_PREFIX = 'kizuna_wiki_thumb_v2:';
 
 function normalizeTermKey(term: string): string {
   return term.trim().toLowerCase().replace(/\s+/g, '_');
@@ -58,6 +58,7 @@ function getCachedThumbnail(key: string): { hit: boolean; url: string | null } {
 
 function setCachedThumbnail(key: string, url: string | null): void {
   memoryThumbnailCache.set(key, url);
+  if (!url) return;
   try {
     sessionStorage.setItem(`${SESSION_STORAGE_PREFIX}${key}`, JSON.stringify(url));
   } catch {
@@ -88,7 +89,6 @@ async function fetchWikipediaThumbnailUrl(term: string): Promise<string | null> 
         method: 'GET',
         headers: {
           Accept: 'application/json',
-          'Api-User-Agent': 'KizunaZekApp/1.0 (creative-studio)',
         },
       });
 
