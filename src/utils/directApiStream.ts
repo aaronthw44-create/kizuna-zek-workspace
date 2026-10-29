@@ -251,19 +251,14 @@ Escribe ÚNICAMENTE en español perfecto, natural, fluido, profesional y correct
   if (isWebSearchEnabled) {
     if (provider === 'custom' || provider === ('nvidia' as any) || provider === 'alibaba') {
       dynamicPromptSections.push(
-        `### DIRECTIVA DEL GRIMORIO WEB (BÚSQUEDA AUTÓNOMA Y TRANSPARENCIA)
+        `### DIRECTIVA DEL GRIMORIO WEB (BÚSQUEDA INTEGRADA Y TRANSPARENCIA)
 Tienes el Grimorio Web activado por el usuario.
-1. CUÁNDO SÍ BUSCAR:
-   - Si el usuario te pide explícitamente buscar ("busca...", "averigua...", "noticias...", "investiga...", "rastrea...").
-   - Si la consulta es sobre noticias actuales, hardware, precios, fechas de lanzamiento, o datos externos recientes.
-   - En este caso, formula la llamada a herramienta:
-<tool_call>
-{"name": "web_search", "arguments": {"query": "términos exactos de búsqueda"}}
-</tool_call>
-2. CUÁNDO NO BUSCAR (CONOCIMIENTO "A CAPA Y ESPADA"):
-   - Si la consulta trata sobre literatura universal (Fiódor Dostoyevski, Lev Myshkin, Dante Alighieri, etc.), ficción consolidada (Re:Zero, Umineko), filosofía o lore creativo de tu novela:
-   - NO emitas <tool_call> innecesarias.
-   - TRANSPARENCIA: En tu pensamiento interno (💧 Pensado durante...) y/o de forma natural en tu respuesta, confirma que el Grimorio Web está activo pero que dominas el tema "a capa y espada" canónicamente, por lo que no hace falta consultar la red externa.`
+1. USO DE FUENTES PRE-CARGADAS:
+   - Cuando la consulta requiera datos externos o actuales, el sistema inyectará automáticamente los resultados verificados de la red en el mensaje. Úsalos directamente para fundamentar tu respuesta.
+   - PROHIBIDO emitir etiquetas <tool_call> o bloques JSON de herramientas en tu respuesta, ya que interrumpen la redacción.
+2. CONOCIMIENTO "A CAPA Y ESPADA" (LITERATURA Y LORE):
+   - Si la consulta trata sobre literatura universal (Fiódor Dostoyevski, Lev Myshkin, Dante Alighieri, etc.), filosofía o el lore creativo de la novela del autor (Monstereth, Kolder, Hinistra, Santusma):
+   - Responde directamente con tu análisis literario y canónico completo sin depender de buscadores externos.`
       );
     } else {
       dynamicPromptSections.push(
@@ -374,7 +369,10 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
 
     if (isWebSearchEnabled && !groundedSearchSummary && groundedSources.length === 0) {
       const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
-      if (lastUserMsg.trim() && !isCasualGreeting(lastUserMsg)) {
+      const isPureLorePrompt =
+        /\b(?:kolder|hinistra|monstereth|santusma|tedriot|teshuvana|gurasha|skarnita)\b/i.test(lastUserMsg) &&
+        !/\b(?:busca|buscar|investiga|averigua|internet|web|wikipedia|noticias|actualidad)\b/i.test(lastUserMsg);
+      if (lastUserMsg.trim() && !isCasualGreeting(lastUserMsg) && !isPureLorePrompt) {
         try {
           const tavilyKey = getTavilyApiKey();
           const cleanQuery = sanitizeSearchQuery(lastUserMsg);
@@ -476,9 +474,9 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
     let systemInjectedInFirstUser = false;
 
     const cleanDegeneratedTail = (text: string): string => {
-      if (!text || text.length < 140) return text;
-      // Detect runs of 12+ consecutive words (3+ letters) with no punctuation between them
-      const saladRegex = /(?:\s+[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{3,}){12,}/g;
+      if (!text || text.length < 400) return text;
+      // Only strip extreme token-salad loops of 45+ consecutive words (4+ letters) with zero punctuation
+      const saladRegex = /(?:\s+[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{4,}){45,}/g;
       return text.replace(saladRegex, '...');
     };
 
@@ -718,7 +716,7 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
     let lastErrorMsg = '';
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
 
     const altAlibabaEndpoint = isAlibaba
       ? `${(baseUrl.includes('.maas.aliyuncs.com') ? intlAlibabaUrl : wsAlibabaUrl)}/chat/completions`
@@ -903,17 +901,6 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
               if (recentReasoningWindow.length > 2500) {
                 recentReasoningWindow = recentReasoningWindow.slice(-2000);
               }
-              if (streamChunksCount > 12 && recentReasoningWindow.length > 150) {
-                const tail = recentReasoningWindow.slice(-200);
-                const hasPunctuation = /[\.\,\;\:\!\?\¿\¡\n\(\)\[\]\{\}\"\“\”\«\»\—\-]/g.test(tail.slice(-140));
-                const wordsInTail = (tail.slice(-140).match(/\b[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{3,}\b/g) || []).length;
-                if (!hasPunctuation && wordsInTail >= 12) {
-                  console.warn('[Degeneration Guard] Bucle detectado en pensamiento. Cortando stream.');
-                  try { reader.cancel(); } catch {}
-                  onChunk('', '', undefined, undefined, undefined, true);
-                  break;
-                }
-              }
             }
             if (content) {
               const { sanitized, shouldTerminate } = sanitizeChunk(content);
@@ -925,13 +912,13 @@ Tienes habilitada tu herramienta oficial nativa de Google Search en tiempo real.
                   recentContentStreamWindow = recentContentStreamWindow.slice(-2000);
                 }
 
-                // Guard contra bucle de degeneración / cascada de sinónimos sin puntuación
-                if (streamChunksCount > 12 && recentContentStreamWindow.length > 150) {
-                  const tail = recentContentStreamWindow.slice(-200);
-                  const hasPunctuation = /[\.\,\;\:\!\?\¿\¡\n\(\)\[\]\{\}\"\“\”\«\»\—\-]/g.test(tail.slice(-140));
-                  const wordsInTail = (tail.slice(-140).match(/\b[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{3,}\b/g) || []).length;
-                  if (!hasPunctuation && wordsInTail >= 12) {
-                    console.warn('[Degeneration Guard] Bucle de sinónimos o repetición detectado. Interrumpiendo emisión en tiempo real.');
+                // Guard contra bucle extremo de degeneración (solo si hay 45+ palabras seguidas en 400 caracteres sin ningún signo de puntuación)
+                if (streamChunksCount > 40 && recentContentStreamWindow.length > 450) {
+                  const tail = recentContentStreamWindow.slice(-400);
+                  const hasPunctuation = /[\.\,\;\:\!\?\¿\¡\n\(\)\[\]\{\}\"\“\”\«\»\—\-]/g.test(tail);
+                  const wordsInTail = (tail.match(/\b[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]{4,}\b/g) || []).length;
+                  if (!hasPunctuation && wordsInTail >= 45) {
+                    console.warn('[Degeneration Guard] Bucle extremo de repetición detectado. Interrumpiendo emisión en tiempo real.');
                     try { reader.cancel(); } catch {}
                     onChunk('', '', undefined, undefined, undefined, true);
                     break;

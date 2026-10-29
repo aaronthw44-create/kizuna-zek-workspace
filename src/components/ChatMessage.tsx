@@ -447,7 +447,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
     const followUpRegex = /<<<FOLLOW_UP>>>([\s\S]*?)(?:<<<END_FOLLOW_UP>>>|$)/;
     const foundMatch = message.content.match(followUpRegex);
     const rawClean = message.content.replace(/<<<FOLLOW_UP>>>[\s\S]*$/i, '').trim();
-    const parsedClean = parseMessageContent(rawClean, message.thinking);
+    const parsedClean = parseMessageContent(rawClean, message.thinking || message.thought);
     return {
       thinking: parsedClean.thinking,
       prose: parsedClean.prose,
@@ -455,7 +455,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
       cleanDisplayContent: parsedClean.prose,
       match: foundMatch,
     };
-  }, [message.content, message.thinking, message.isStreaming]);
+  }, [message.content, message.thinking, message.thought, message.isStreaming]);
   const thoughtContent = (message.thought || thinking || message.thinking || '').trim();
   const hasThoughts = Boolean(thoughtContent);
   const isThinking = Boolean(
@@ -1825,7 +1825,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
           {!message.isStreaming && !isEditing && (
             <div className="mt-3 pt-2 border-t border-zinc-200/80 dark:border-zinc-800/40 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-zinc-500 select-none">
               {/* Left: Streamlined Action Bar (Primary buttons + ··· Overflow Menu) */}
-              <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap opacity-95 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150">
+              <div
+                ref={actionMenuRef}
+                className="relative flex items-center gap-1 sm:gap-1.5 flex-wrap opacity-95 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150"
+              >
                 {message.variants && message.variants.length > 1 && (
                   <div className="flex items-center gap-0.5 font-mono text-[11px] text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-lg p-0.5 shrink-0 shadow-xs mr-1">
                     <button
@@ -1945,7 +1948,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                 )}
 
                 {/* 4. Menú de acciones secundarias (···) */}
-                <div className="relative" ref={actionMenuRef}>
+                <div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -2006,7 +2009,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                             transition: { duration: 0.14 },
                           },
                         }}
-                        className="absolute left-0 bottom-full mb-2 z-50 w-60 p-1.5 rounded-[22px] bg-white/95 dark:bg-[#13131a]/95 border border-zinc-200 dark:border-white/12 shadow-[0_24px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl flex flex-col gap-0.5 select-none origin-bottom-left"
+                        className="absolute left-0 bottom-full mb-2 z-50 w-60 max-w-[calc(100vw-2rem)] p-1.5 rounded-[22px] bg-white/95 dark:bg-[#13131a]/95 border border-zinc-200 dark:border-white/12 shadow-[0_24px_60px_rgba(0,0,0,0.85)] backdrop-blur-2xl flex flex-col gap-0.5 select-none origin-bottom-left"
                       >
                         {!isUser && onIllustrateScene && (
                           <motion.button
