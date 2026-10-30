@@ -200,13 +200,214 @@ export function saveSettings(settings: AppSettings): void {
   }
 }
 
+const DELETED_MEDIA_IDS_KEY = 'kizuna_deleted_media_ids';
+const MEDIA_VHASH_CACHE_KEY = 'kizuna_media_vhash_v1';
+
+interface VisualFingerprint {
+  ar: number;
+  lums: number[]; // 64 grayscale luminance values (0..255) on an 8x8 grid
+}
+
+const memoryVHashCache = new Map<string, VisualFingerprint>();
+
+function getStoredVHashCache(): Record<string, VisualFingerprint> {
+  try {
+    const raw = localStorage.getItem(MEDIA_VHASH_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveStoredVHashCache(cache: Record<string, VisualFingerprint>): void {
+  try {
+    const keys = Object.keys(cache);
+    if (keys.length > 200) {
+      const trimmed: Record<string, VisualFingerprint> = {};
+      keys.slice(-150).forEach((k) => {
+        trimmed[k] = cache[k];
+      });
+      localStorage.setItem(MEDIA_VHASH_CACHE_KEY, JSON.stringify(trimmed));
+    } else {
+      localStorage.setItem(MEDIA_VHASH_CACHE_KEY, JSON.stringify(cache));
+    }
+  } catch {
+    // Ignore storage quota issues for cache
+  }
+}
+
+export function loadDeletedMediaIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_MEDIA_IDS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? new Set(parsed) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+export function addDeletedMediaIds(ids: string[]): void {
+  if (!ids || ids.length === 0) return;
+  try {
+    const current = loadDeletedMediaIds();
+    ids.forEach((id) => {
+      if (id) current.add(id);
+    });
+    const arr = Array.from(current).slice(-500);
+    localStorage.setItem(DELETED_MEDIA_IDS_KEY, JSON.stringify(arr));
+  } catch {
+    // Ignore storage error
+  }
+}
+
+export function deduplicateSessionMediaSync(media: Attachment[]): Attachment[] {
+  const deletedIds = loadDeletedMediaIds();
+  const seenIds = new Set<string>();
+  const seenUrls = new Set<string>();
+  const result: Attachment[] = [];
+
+  for (const m of media || []) {
+    if (!m || !m.id || deletedIds.has(m.id) || seenIds.has(m.id)) continue;
+    const urlKey = (m.videoUrl && m.videoUrl.trim()) || (m.dataUrl && m.dataUrl.trim()) || '';
+    if (!urlKey) continue;
+    // Fast exact signature: length + middle/tail slice for dataUrls so identical base64 strings never duplicate
+    const fastUrlSig =
+      urlKey.length > 512
+        ? `${urlKey.length}:${urlKey.slice(0, 96)}:${urlKey.slice(Math.floor(urlKey.length / 2), Math.floor(urlKey.length / 2) + 96)}:${urlKey.slice(-96)}`
+        : urlKey;
+    if (seenUrls.has(fastUrlSig)) {
+      addDeletedMediaIds([m.id]);
+      continue;
+    }
+    seenIds.add(m.id);
+    seenUrls.add(fastUrlSig);
+    result.push(m);
+  }
+  return result;
+}
+
+async function computeVisualFingerprint(att: Attachment, storedCache: Record<string, VisualFingerprint>): Promise<VisualFingerprint | null> {
+  if (!att.dataUrl || (!att.type?.startsWith('image/') && att.fileType !== 'image' && !att.dataUrl.startsWith('data:image/'))) {
+    return null;
+  }
+  if (memoryVHashCache.has(att.id)) {
+    return memoryVHashCache.get(att.id)!;
+  }
+  if (storedCache[att.id] && Array.isArray(storedCache[att.id].lums) && storedCache[att.id].lums.length === 64) {
+    memoryVHashCache.set(att.id, storedCache[att.id]);
+    return storedCache[att.id];
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const timeout = setTimeout(() => resolve(null), 2500);
+    img.onload = () => {
+      clearTimeout(timeout);
+      try {
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        if (!w || !h) {
+          resolve(null);
+          return;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = 8;
+        canvas.height = 8;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, 8, 8);
+        const data = ctx.getImageData(0, 0, 8, 8).data;
+        const lums: number[] = [];
+        for (let i = 0; i < 64; i++) {
+          const r = data[i * 4];
+          const g = data[i * 4 + 1];
+          const b = data[i * 4 + 2];
+          lums.push(Math.round(0.299 * r + 0.587 * g + 0.114 * b));
+        }
+        const fp: VisualFingerprint = {
+          ar: Number((w / h).toFixed(3)),
+          lums,
+        };
+        memoryVHashCache.set(att.id, fp);
+        storedCache[att.id] = fp;
+        resolve(fp);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => {
+      clearTimeout(timeout);
+      resolve(null);
+    };
+    img.src = att.dataUrl;
+  });
+}
+
+function areVisualFingerprintsDuplicate(a: VisualFingerprint, b: VisualFingerprint): boolean {
+  if (Math.abs(a.ar - b.ar) > 0.045) return false;
+  if (a.lums.length !== 64 || b.lums.length !== 64) return false;
+  let totalDiff = 0;
+  for (let i = 0; i < 64; i++) {
+    totalDiff += Math.abs(a.lums[i] - b.lums[i]);
+  }
+  const meanAbsDiff = totalDiff / 64;
+  return meanAbsDiff <= 6.5;
+}
+
+export async function deduplicateSessionMediaVisual(media: Attachment[]): Promise<{
+  deduplicated: Attachment[];
+  removedIds: string[];
+}> {
+  const syncClean = deduplicateSessionMediaSync(media);
+  if (syncClean.length <= 1 || typeof document === 'undefined') {
+    return { deduplicated: syncClean, removedIds: [] };
+  }
+
+  const storedCache = getStoredVHashCache();
+  let cacheDirty = false;
+  const kept: Attachment[] = [];
+  const keptFingerprints: VisualFingerprint[] = [];
+  const removedIds: string[] = [];
+
+  for (const item of syncClean) {
+    const hadCached = Boolean(storedCache[item.id]);
+    const fp = await computeVisualFingerprint(item, storedCache);
+    if (!hadCached && fp) cacheDirty = true;
+
+    if (fp) {
+      const isDup = keptFingerprints.some((existingFp) => areVisualFingerprintsDuplicate(existingFp, fp));
+      if (isDup) {
+        removedIds.push(item.id);
+        continue;
+      }
+      keptFingerprints.push(fp);
+    }
+    kept.push(item);
+  }
+
+  if (cacheDirty) {
+    saveStoredVHashCache(storedCache);
+  }
+  if (removedIds.length > 0) {
+    addDeletedMediaIds(removedIds);
+  }
+
+  return { deduplicated: kept, removedIds };
+}
+
 export function loadSessionMedia(): Attachment[] {
   try {
     const raw = sessionStorage.getItem(MEDIA_KEY) || localStorage.getItem(MEDIA_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((m: Attachment) => Boolean((m.dataUrl && m.dataUrl.trim()) || (m.videoUrl && m.videoUrl.trim())));
+    const valid = parsed.filter((m: Attachment) => Boolean((m.dataUrl && m.dataUrl.trim()) || (m.videoUrl && m.videoUrl.trim())));
+    return deduplicateSessionMediaSync(valid);
   } catch {
     return [];
   }
@@ -219,7 +420,7 @@ export async function loadSessionMediaFromIDB(): Promise<Attachment[] | null> {
       const valid = idbData
         .filter((m) => Boolean((m.dataUrl && m.dataUrl.trim()) || (m.videoUrl && m.videoUrl.trim())))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      return valid;
+      return deduplicateSessionMediaSync(valid);
     }
   } catch (e) {
     console.warn('IDB media read fallback:', e);
@@ -228,7 +429,9 @@ export async function loadSessionMediaFromIDB(): Promise<Attachment[] | null> {
 }
 
 export function saveSessionMedia(media: Attachment[]): void {
-  const validMedia = (media || []).filter((m) => Boolean((m.dataUrl && m.dataUrl.trim()) || (m.videoUrl && m.videoUrl.trim())));
+  const validMedia = deduplicateSessionMediaSync(
+    (media || []).filter((m) => Boolean((m.dataUrl && m.dataUrl.trim()) || (m.videoUrl && m.videoUrl.trim())))
+  );
   // Always persist binary media/images to IndexedDB (virtually unlimited quota)
   idbSaveAll('media_files', validMedia).catch(() => {
     // Graceful IDB background sync

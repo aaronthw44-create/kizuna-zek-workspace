@@ -29,6 +29,10 @@ import {
   loadSessionMedia,
   saveSessionMedia,
   loadSessionMediaFromIDB,
+  loadDeletedMediaIds,
+  addDeletedMediaIds,
+  deduplicateSessionMediaSync,
+  deduplicateSessionMediaVisual,
   exportChatAsMarkdown,
 } from './utils/storage';
 import { exportChatToEpub } from './utils/epubExporter';
@@ -495,10 +499,12 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
 
     Promise.all([loadSessionMediaFromIDB(), loadChatsFromIDB()])
       .then(([idbMedia, idbChats]) => {
+        const deletedMediaIds = loadDeletedMediaIds();
         const recoveredMediaMap = new Map<string, Attachment>();
 
         if (idbMedia && idbMedia.length > 0) {
           idbMedia.forEach((m) => {
+            if (deletedMediaIds.has(m.id)) return;
             if ((m.dataUrl && m.dataUrl.trim()) || (m.videoUrl && m.videoUrl.trim())) {
               recoveredMediaMap.set(m.id, m);
             }
@@ -506,10 +512,11 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
         }
 
         if (idbChats && idbChats.length > 0) {
-          // Also extract any valid media from IndexedDB chats so La Cajita is always complete
+          // Also extract any valid media from IndexedDB chats so La Cajita is always complete (respecting deleted/deduplicated IDs)
           idbChats.forEach((c) => {
             (c.messages || []).forEach((m) => {
               (m.attachments || []).forEach((att) => {
+                if (deletedMediaIds.has(att.id)) return;
                 if ((att.dataUrl && att.dataUrl.trim()) || (att.videoUrl && att.videoUrl.trim())) {
                   if (!recoveredMediaMap.has(att.id)) {
                     recoveredMediaMap.set(att.id, att);
@@ -573,16 +580,18 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
           setSessionMedia((prev) => {
             const merged = new Map<string, Attachment>();
             prev.forEach((p) => {
+              if (deletedMediaIds.has(p.id)) return;
               if ((p.dataUrl && p.dataUrl.trim()) || (p.videoUrl && p.videoUrl.trim())) {
                 merged.set(p.id, p);
               }
             });
             recoveredMediaMap.forEach((rm, id) => {
-              if (!merged.has(id)) {
+              if (!deletedMediaIds.has(id) && !merged.has(id)) {
                 merged.set(id, rm);
               }
             });
-            return Array.from(merged.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            const sorted = Array.from(merged.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            return deduplicateSessionMediaSync(sorted);
           });
         }
       })
@@ -822,6 +831,19 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
   useEffect(() => {
     if (!idbMediaHydratedRef.current) return;
     saveSessionMedia(sessionMedia);
+  }, [sessionMedia]);
+
+  useEffect(() => {
+    if (sessionMedia.length <= 1) return;
+    let cancelled = false;
+    deduplicateSessionMediaVisual(sessionMedia).then(({ deduplicated, removedIds }) => {
+      if (!cancelled && removedIds.length > 0) {
+        setSessionMedia(deduplicated);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [sessionMedia]);
 
 
@@ -1353,11 +1375,12 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
 
   const handleAttachSessionMedia = (att: Attachment) => {
     if (att.dataUrl || att.type.startsWith('image/')) {
-      setSessionMedia((prev) => [att, ...prev.filter((m) => m.id !== att.id)]);
+      setSessionMedia((prev) => deduplicateSessionMediaSync([att, ...prev.filter((m) => m.id !== att.id)]));
     }
   };
 
   const handleDeleteSessionMedia = (id: string) => {
+    addDeletedMediaIds([id]);
     setSessionMedia((prev) => prev.filter((m) => m.id !== id));
   };
 
