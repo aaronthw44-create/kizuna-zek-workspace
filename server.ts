@@ -185,7 +185,7 @@ function clampTextSegment(text: string, maxChars: number): string {
   return `${text.slice(0, half)}\n\n[... Fragmento central recortado para respetar el límite de contexto del modelo ...]\n\n${text.slice(-half)}`;
 }
 
-function extractRelevantChaptersServer(fullLoreText: string, userQuery: string, maxCharLength: number = 6500): string {
+function extractRelevantChaptersServer(fullLoreText: string, userQuery: string, maxCharLength: number = 18000): string {
   if (!fullLoreText || fullLoreText.length <= maxCharLength) {
     return fullLoreText;
   }
@@ -197,8 +197,31 @@ function extractRelevantChaptersServer(fullLoreText: string, userQuery: string, 
   }
 
   const lowerQuery = (userQuery || '').toLowerCase();
+  const explicitChapterSet = new Set<string>();
+
+  // Detect chapter ranges (e.g. "capítulos 10 hasta el 20", "del 10 al 20", "cap 10-20")
+  const normQuery = lowerQuery.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const rangeRegexes = [
+    /\b(?:cap(?:itulos?)?|chapters?|actos?|partes?|episodios?)\s*(?:del\s*)?#?(\d+)\s*(?:al|hasta(?:\s+el)?|a|-|–|—|y(?:\s+el)?)\s*#?(\d+)\b/g,
+    /\b(?:del|desde\s+el|entre\s+el)\s+(?:cap(?:itulo)?\s*)?#?(\d+)\s+(?:al|hasta(?:\s+el)?|a|y\s+el)\s+(?:cap(?:itulo)?\s*)?#?(\d+)\b/g,
+  ];
+  for (const rx of rangeRegexes) {
+    for (const m of normQuery.matchAll(rx)) {
+      const start = parseInt(m[1], 10);
+      const end = parseInt(m[2], 10);
+      if (!Number.isNaN(start) && !Number.isNaN(end) && start > 0 && end >= start && end - start <= 40) {
+        for (let c = start; c <= end; c++) {
+          explicitChapterSet.add(String(c));
+        }
+      }
+    }
+  }
+
   // Detect explicit chapter/act/volume number references (e.g., "capítulo 4", "cap 12", "acto 2")
-  const explicitChapterMatches = [...lowerQuery.matchAll(/\b(?:cap[íi]tulo|chapter|cap|acto|volumen|vol|parte)\s*(\d+)\b/gi)].map((m) => m[1]);
+  for (const m of lowerQuery.matchAll(/\b(?:cap[íi]tulos?|chapters?|caps?|actos?|volumen|vol|partes?)\s*#?(\d+)\b/gi)) {
+    explicitChapterSet.add(m[1]);
+  }
+  const explicitChapterMatches = Array.from(explicitChapterSet);
   const asksPrologue = /\b(?:pr[óo]logo|inicio|comienzo|principio)\b/i.test(lowerQuery);
   const asksEpilogue = /\b(?:ep[íi]logo|final| cierre)\b/i.test(lowerQuery);
 

@@ -2184,7 +2184,7 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
       attachments = [...attachments, ...loreImageAttachments];
     }
 
-    const loreDocumentsText = compressLoreDocsTo2K(activeLoreDocs, userContent);
+    const loreDocumentsText = compressLoreDocsTo2K(activeLoreDocs, userContent, undefined, rawSelectedLoreDocs);
 
     const isShortGreeting = !isContinuationTurn && attachments.length === 0 && isCasualGreeting(userContent.trim());
     const userAsksAboutLore = isContinuationTurn || /lore|bóveda|boveda|manuscrito|capítulo|capitulo|escena|documento|archivos|fichas|canon|kolder|hinistra|tedriot|teshuvana|monstereth/i.test(userContent);

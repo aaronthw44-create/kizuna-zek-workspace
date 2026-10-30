@@ -41,6 +41,49 @@ export function normalizeRagText(text: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
+export function extractExplicitChapterNumbersFromNormalized(normalized: string): number[] {
+  const chapterSet = new Set<number>();
+
+  // 1. Rangos explícitos: "capitulos 10 hasta el 20", "del capitulo 10 al 20", "cap 10 a 20", "caps 10-20", "entre el 10 y el 20", "del 10 al 20"
+  const rangePatterns = [
+    /\b(?:cap(?:itulos?)?|chapters?|actos?|partes?|episodios?)\s*(?:del\s*)?#?(\d+)\s*(?:al|hasta(?:\s+el)?|a|-|–|—|y(?:\s+el)?)\s*#?(\d+)\b/g,
+    /\b(?:del|desde\s+el|entre\s+el)\s+(?:cap(?:itulo)?\s*)?#?(\d+)\s+(?:al|hasta(?:\s+el)?|a|y\s+el)\s+(?:cap(?:itulo)?\s*)?#?(\d+)\b/g,
+  ];
+
+  for (const pattern of rangePatterns) {
+    for (const match of normalized.matchAll(pattern)) {
+      const start = parseInt(match[1], 10);
+      const end = parseInt(match[2], 10);
+      if (!Number.isNaN(start) && !Number.isNaN(end) && start > 0 && end >= start && end - start <= 40) {
+        for (let c = start; c <= end; c++) {
+          chapterSet.add(c);
+        }
+      }
+    }
+  }
+
+  // 2. Listas tras la palabra capítulo(s): ej. "capitulos 4, 7 y 12"
+  for (const listMatch of normalized.matchAll(/\b(?:cap(?:itulos?)?|chapters?|episodios?)\s+((?:#?\d+(?:\s*(?:,|y|e|o)\s*)?)+)/g)) {
+    const numsBlock = listMatch[1] || '';
+    for (const numMatch of numsBlock.matchAll(/\b(\d+)\b/g)) {
+      const n = parseInt(numMatch[1], 10);
+      if (!Number.isNaN(n) && n > 0 && n <= 500) {
+        chapterSet.add(n);
+      }
+    }
+  }
+
+  // 3. Menciones individuales: "capitulo 10", "cap 15", "acto 2"
+  for (const singleMatch of normalized.matchAll(/\b(?:cap(?:itulos?)?|chapters?|actos?|partes?|episodios?)\s*#?(\d+)\b/g)) {
+    const n = parseInt(singleMatch[1], 10);
+    if (!Number.isNaN(n) && n > 0 && n <= 500) {
+      chapterSet.add(n);
+    }
+  }
+
+  return Array.from(chapterSet).sort((a, b) => a - b);
+}
+
 /**
  * Extrae términos clave y etiquetas semánticas de la consulta actual y los últimos turnos.
  */
@@ -63,10 +106,14 @@ export function extractSceneQueryTerms(
 
   const combinedRaw = `${userQuery || ''} ${recentSnippet}`.trim();
   const normalized = normalizeRagText(combinedRaw);
+  const directQueryNormalized = normalizeRagText(userQuery || '');
 
-  const explicitChapters = [
-    ...normalized.matchAll(/\b(?:cap(?:itulo)?|chapter|acto|parte|episodio)\s*#?(\d+)\b/g),
-  ].map((m) => parseInt(m[1], 10));
+  // Priorizar capítulos explícitos pedidos en el mensaje actual; si no hay, mirar el contexto inmediato
+  const directChapters = extractExplicitChapterNumbersFromNormalized(directQueryNormalized);
+  const explicitChapters =
+    directChapters.length > 0
+      ? directChapters
+      : extractExplicitChapterNumbersFromNormalized(normalized);
 
   const asksPrologue = /\b(?:prologo|inicio|comienzo|apertura)\b/.test(normalized);
   const asksEpilogue = /\b(?:epilogo|final|cierre|desenlace)\b/.test(normalized);
@@ -270,6 +317,10 @@ export function filterLoreByDynamicRag(
 
   // Ordenar de mayor a menor relevancia para seleccionar las fichas activas del turno
   const sortedByScore = [...scoredItems].sort((a, b) => b.score - a.score);
+  const effectiveMaxDocs =
+    explicitChapters.length > 0
+      ? Math.max(maxInjectedDocs, Math.min(35, explicitChapters.length + 2))
+      : maxInjectedDocs;
 
   const injectedIds = new Set<string>();
   for (const item of sortedByScore) {
@@ -277,7 +328,7 @@ export function filterLoreByDynamicRag(
       injectedIds.add(item.file.id);
       continue;
     }
-    if (injectedIds.size < maxInjectedDocs && item.score >= 22) {
+    if (injectedIds.size < effectiveMaxDocs && item.score >= 22) {
       injectedIds.add(item.file.id);
     }
   }

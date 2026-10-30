@@ -223,7 +223,7 @@ Escribe ÚNICAMENTE en español perfecto, natural, fluido, profesional y correct
   };
 
   if (loreContext.trim()) {
-    const clampedLore = clampTextClient(loreContext.trim(), 6500);
+    const clampedLore = clampTextClient(loreContext.trim(), 18000);
     if (clampedLore.includes('[DOCUMENTOS Y MANUSCRITO DE LORE ACTIVO') || clampedLore.includes('[SELECCIÓN INTELIGENTE DE CAPÍTULOS')) {
       promptSections.push(clampedLore);
     } else {
