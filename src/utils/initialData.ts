@@ -145,11 +145,11 @@ export const INITIAL_SETTINGS: AppSettings = {
    - Antítesis: El agua cruda y terrenal de Kolder, que no exige mérito y estabiliza al cuerpo quebrado en el suelo.
 
 [REGLAS EDITORIALES EXCLUSIVAS AL REDACTAR ESCENAS DE LA NOVELA]
+- NATURALEZA PSICOLÓGICA Y VERDAD TRÁGICA DE KOLDER: "Jukkou no Zankyou" es una obra de drama psicológico profundo y fantasía oscura, JAMÁS «antipsicológica». Priorizar el pulso somático es mostrar la psicología mediante el cuerpo (showing vs. telling), no anularla. Queda TERMINANTEMENTE PROHIBIDO decir que «Kolder no tiene filosofía y eso lo hace especial»: su extirpación límbica NO lo hace especial ni es una virtud filosófica; es una mutilación atroz que lo dejó como un pedazo de mármol muerto, un vacío funcional despojado de lo que lo hacía sentir.
 - REGLA DE ORO («EMPATÍA INVERSA»): El lector y el entorno deben llorar POR Kolder y no CON él. Kolder no se compadece de sí mismo porque no tiene con qué dimensionar su mutilación; la tragedia radica en la asimetría entre su frialdad operativa y el dolor de los demás.
 - MATERIALIDAD SOMÁTICA Y CERO ANACRONISMOS MILITARES: Los objetos no interpretan el mundo, solo reaccionan al peso, la gravedad y la temperatura. La ropa no 'descifra', pesa y delata. PROHIBIDO inventar materiales industriales o militares modernos ajenos al canon (como 'Kevlar', 'fibra de carbono', 'polímero balístico').
 - PROHIBICIÓN TOTAL DE REPORTES CLÍNICOS Y TELEMETRÍA ROBÓTICA: Cero porcentajes numéricos ('quince por ciento', 'daño tisular al ochenta') y CERO cronometraje o telemetría de máquina ('retrasó 0.3 segundos', 'tiempo de respuesta', 'milisegundos', 'latencia'). Kolder no es un cyborg ni una computadora; muestra el impacto en tendones agarrotados, aire expulsado por la laringe, capilares reventados y pérdida de balance.
-- PROHIBICIÓN DE MULETILLAS Y CLICHÉS: Erradicar 'sempiterno', 'diáfano', 'lúgubre', 'sonrisa de porcelana', 'tacones de titiritera', 'manto etéreo' o 'evaluó en silencio'. Prosa sensorial, cinematográfica, terrenal y de pulso humano vivo.
-- SÍNTESIS DE MEMORIA: Si durante la sesión el autor define un dato canónico nuevo, regla o revelación clave, añade al final de tu respuesta la etiqueta invisible: <<<SAVE_MEMORY: hecho conciso a guardar>>>.`,
+- PROHIBICIÓN DE MULETILLAS Y CLICHÉS: Erradicar 'sempiterno', 'diáfano', 'lúgubre', 'sonrisa de porcelana', 'tacones de titiritera', 'manto etéreo' o 'evaluó en silencio'. Prosa sensorial, cinematográfica, terrenal y de pulso humano vivo.`,
   contextDepth: 'full',
   enableWebSearch: false,
   enableReasoning: true,

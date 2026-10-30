@@ -87,16 +87,25 @@ function sanitizeSearchQuery(userPrompt: string): string {
 
 function isCasualGreeting(userPrompt: string): boolean {
   if (!userPrompt || !userPrompt.trim()) return true;
-  const clean = userPrompt.trim().toLowerCase().replace(/[¿?¡!.,;:()'"-]/g, '').trim();
-  if (clean.length < 8) {
+  const clean = userPrompt
+    .replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]|\u{FE0F}/gu, '')
+    .replace(/(?::D|:P|:O|:3|;\)|:\)|xD|XD)/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[¿?¡!.,;:()'"-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (clean.length < 32) {
+    const pureGreetingRegex = /^(?:hola|buenas|buen dia|buen día|buenas tardes|buenas noches|hey|hi|hello|alo|aló|saludos|que tal|qué tal)(?:\s+(?:aaron|kizu|kizuna|che|bro|amigo|colega|como estas|cómo estás|como andas|cómo andás|que tal|qué tal|todo bien|devuelta|de vuelta))*$/i;
+    if (pureGreetingRegex.test(clean)) return true;
     const greetingWords = [
       'hola', 'buenas', 'que tal', 'qué tal', 'buen dia', 'buen día',
       'buenas tardes', 'buenas noches', 'hey', 'hi', 'hello', 'alo', 'aló',
       'saludos', 'adios', 'adiós', 'chau', 'gracias', 'ok', 'vale', 'si', 'sí', 'no'
     ];
     if (greetingWords.includes(clean)) return true;
-    if (greetingWords.some((w) => clean.startsWith(w + ' ') || clean.endsWith(' ' + w))) return true;
-    if (clean.length <= 4) return true;
+    if (clean.length < 15 && greetingWords.some((w) => clean === w || clean.startsWith(w + ' ') || clean.endsWith(' ' + w))) return true;
+    if (clean.length <= 5) return true;
   }
   return false;
 }
@@ -1924,15 +1933,15 @@ app.post('/api/chat', async (req, res) => {
 - Naturalidad en charla: Al conversar con el autor, habla de forma natural y directa; PROHIBIDO incluir acotaciones teatrales o de roleplay entre paréntesis (ej. "(pausa corta...)", "(suspira...)") ni impostar voz de detective noir.${customInstructionsText ? `\n- Instrucciones personalizadas permanentes del usuario (PRIORIDAD ALTA): ${customInstructionsText}` : ''}
 
 ### REGLA OBLIGATORIA DE SALUDOS Y ATENCIÓN INICIAL
-Si el mensaje del usuario es únicamente un saludo breve o de cortesía (ej. "Hola", "Buenas", "Hola 👋", "Qué tal", "Hola Aaron"):
-- NO te lances de inmediato a analizar, diseccionar o criticar las fichas o capítulos de la Bóveda de Lore ni las sesiones previas.
-- Responde de forma cálida, sobria y cercana de colega a colega, saludando al autor por su nombre.
-- Si hay documentos cargados en la Bóveda de Lore, menciona amablemente en una sola frase qué fichas o manuscritos tienes sobre la mesa.
-- Pregúntale con empatía en qué desea trabajar o enfocarse en esta sesión antes de empezar a analizar cualquier escena o manuscrito.
-- NUNCA uses emojis infantiles o decorativos (✨, 😉, 🖐️, 🌸, 🚀); puedes acompañar con un gesto sobrio como 😌 si fluye con naturalidad. Mantén un tono inteligente, sobrio, analítico y profesional.
+Si el mensaje del usuario es únicamente un saludo breve o de cortesía (ej. "Hola", "Buenas", "Hola 👋", "Qué tal", "Hola, ¿cómo estás?"):
+- PROHIBIDO lanzarte a analizar fichas, capítulos o sesiones previas en el saludo.
+- PROHIBIDO encasillar al autor ofreciéndole un menú prefabricado de dos temas sobre su novela (NUNCA digas frases como "¿Qué querés hablar sobre tu novela ligera antipsicológica o sino podemos hablar de cómo Kolder no tiene filosofía y eso lo hace especial?").
+- PROHIBIDO llamar a su obra "antipsicológica" (es drama psicológico profundo) y PROHIBIDO decir que "Kolder no tiene filosofía y eso lo hace especial" (su extirpación límbica no lo hace especial; es una mutilación que lo dejó como un pedazo de mármol muerto).
+- Responde únicamente con un saludo cálido, sobrio y natural de colega a colega (1 o 2 oraciones breves), preguntándole abiertamente de qué tiene ganas de charlar o en qué quiere trabajar hoy.
+- NUNCA uses emojis infantiles o decorativos (✨, 😉, 🖐️, 🌸, 🚀); puedes acompañar con un gesto sobrio como 😌 si fluye con naturalidad.
 
 ### DIRECTIVA OBLIGATORIA DE SEGUIMIENTO (FOLLOW-UP DINÁMICO)
-Al final de TODAS tus respuestas completas (sin excepción, incluso saludos), genera exactamente 3 opciones o caminos siguientes breves adaptados estrictamente a lo que se acaba de conversar.
+Al final de TODAS tus respuestas completas (sin excepción, incluso saludos), genera exactamente 3 opciones o caminos siguientes breves adaptados estrictamente a lo que se acaba de conversar (si fue solo un saludo, ofrece opciones abiertas y variadas sin imponer clichés ni repetir frases de memoria).
 Formato obligatorio al final del mensaje:
 <<<FOLLOW_UP>>>
 - [Opción contextual 1 según la respuesta]
@@ -2003,14 +2012,14 @@ Formato obligatorio al final del mensaje:
       dynamicPromptSections.push(sessionSummary.trim());
     }
 
-    if (Array.isArray(memories)) {
-      const activeMemories = memories.filter((m: any) => m.enabled !== false).map((m: any) => `- ${m.text}`);
+    if (Array.isArray(memories) && !isCasualOrShortGreeting) {
+      const pollutedMemPattern = /antipsicol[oó]g|no tiene filosof[ií]a|sin filosof[ií]a|eso lo hace especial/i;
+      const activeMemories = memories
+        .filter((m: any) => m.enabled !== false && !pollutedMemPattern.test(m.text || ''))
+        .map((m: any) => `- ${m.text}`);
       if (activeMemories.length > 0) {
-        dynamicPromptSections.push(`### PERSISTENT LONG-TERM MEMORY (KEY FACTS TO REMEMBER)\n${activeMemories.join('\n')}`);
+        dynamicPromptSections.push(`### PERSISTENT LONG-TERM MEMORY (KEY FACTS TO REMEMBER — DO NOT RECITE UNPROMPTED IN GREETINGS)\n${activeMemories.join('\n')}`);
       }
-      dynamicPromptSections.push(
-        `Si durante la charla el autor comparte detalles personales relevantes, preferencias creativas, o hechos clave sobre sus personajes o Monstereth, sintetiza el dato en una frase concisa en tercera persona y agrégala al final absoluto de tu respuesta con este formato exacto:\n<<<SAVE_MEMORY: [Hecho conciso en tercera persona]>>>. Si no hay datos nuevos que valgan la pena recordar, NO agregues la etiqueta.`
-      );
     }
 
     console.log("Despachando llamada en servidor con webSearch:", Boolean(isWebSearchEnabled));

@@ -101,19 +101,23 @@ export function sanitizeSearchQuery(userPrompt: string): string {
 export function isCasualGreeting(userPrompt: string): boolean {
   if (!userPrompt || !userPrompt.trim()) return true;
   const clean = userPrompt
-    .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '')
+    .replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]|\u{FE0F}/gu, '')
+    .replace(/(?::D|:P|:O|:3|;\)|:\)|xD|XD)/g, '')
     .trim()
     .toLowerCase()
-    .replace(/[¿?¡!.,;:()'"-]/g, '')
+    .replace(/[¿?¡!.,;:()'"-]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
-  if (clean.length < 15) {
+  if (clean.length < 32) {
+    const pureGreetingRegex = /^(?:hola|buenas|buen dia|buen día|buenas tardes|buenas noches|hey|hi|hello|alo|aló|saludos|que tal|qué tal)(?:\s+(?:aaron|kizu|kizuna|che|bro|amigo|colega|como estas|cómo estás|como andas|cómo andás|que tal|qué tal|todo bien|devuelta|de vuelta))*$/i;
+    if (pureGreetingRegex.test(clean)) return true;
     const greetingWords = [
       'hola', 'buenas', 'que tal', 'qué tal', 'buen dia', 'buen día',
       'buenas tardes', 'buenas noches', 'hey', 'hi', 'hello', 'alo', 'aló',
       'saludos', 'adios', 'adiós', 'chau', 'gracias', 'ok', 'vale', 'si', 'sí', 'no'
     ];
     if (greetingWords.includes(clean)) return true;
-    if (greetingWords.some((w) => clean === w || clean.startsWith(w + ' ') || clean.endsWith(' ' + w))) return true;
+    if (clean.length < 15 && greetingWords.some((w) => clean === w || clean.startsWith(w + ' ') || clean.endsWith(' ' + w))) return true;
     if (clean.length <= 5) return true;
   }
   return false;

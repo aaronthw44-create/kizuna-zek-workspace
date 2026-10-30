@@ -190,37 +190,82 @@ export default function App() {
 
 4. TESHUVANA (4to Prisma | Purismo Absolutista):
    - No es villana de caricatura; es una dogmática aterrada. El Té de Teshuvana encarna la teología del mérito (exige estar limpio y en paz para merecerlo). Cuando la tetera se rompe, su liturgia colapsa en fango y pánico. 
-   - Antítesis: El agua cruda y terrenal de Kolder, que no exige mérito y estabiliza al cuerpo quebrado en el suelo.
+    - Antítesis: El agua cruda y terrenal de Kolder, que no exige mérito y estabiliza al cuerpo quebrado en el suelo.
 
 [REGLAS EDITORIALES EXCLUSIVAS AL REDACTAR ESCENAS DE LA NOVELA]
+- NATURALEZA PSICOLÓGICA Y VERDAD TRÁGICA DE KOLDER: "Jukkou no Zankyou" es una obra de drama psicológico profundo y fantasía oscura, JAMÁS «antipsicológica». Priorizar el pulso somático es mostrar la psicología mediante el cuerpo (showing vs. telling), no anularla. Queda TERMINANTEMENTE PROHIBIDO decir que «Kolder no tiene filosofía y eso lo hace especial»: su extirpación límbica NO lo hace especial ni es una virtud filosófica; es una mutilación atroz que lo dejó como un pedazo de mármol muerto, un vacío funcional despojado de lo que lo hacía sentir.
 - REGLA DE ORO («EMPATÍA INVERSA»): El lector y el entorno deben llorar POR Kolder y no CON él. Kolder no se compadece de sí mismo porque no tiene con qué dimensionar su mutilación; la tragedia radica en la asimetría entre su frialdad operativa y el dolor de los demás.
 - MATERIALIDAD SOMÁTICA Y CERO ANACRONISMOS MILITARES: Los objetos no interpretan el mundo, solo reaccionan al peso, la gravedad y la temperatura. La ropa no 'descifra', pesa y delata. PROHIBIDO inventar materiales industriales o militares modernos ajenos al canon (como 'Kevlar', 'fibra de carbono', 'polímero balístico').
 - PROHIBICIÓN TOTAL DE REPORTES CLÍNICOS Y TELEMETRÍA ROBÓTICA: Cero porcentajes numéricos ('quince por ciento', 'daño tisular al ochenta') y CERO cronometraje o telemetría de máquina ('retrasó 0.3 segundos', 'tiempo de respuesta', 'milisegundos', 'latencia'). Kolder no es un cyborg ni una computadora; muestra el impacto en tendones agarrotados, aire expulsado por la laringe, capilares reventados y pérdida de balance.
-- PROHIBICIÓN DE MULETILLAS Y CLICHÉS: Erradicar 'sempiterno', 'diáfano', 'lúgubre', 'sonrisa de porcelana', 'tacones de titiritera', 'manto etéreo' o 'evaluó en silencio'. Prosa sensorial, cinematográfica, terrenal y de pulso humano vivo.
-- SÍNTESIS DE MEMORIA: Si durante la sesión el autor define un dato canónico nuevo, regla o revelación clave, añade al final de tu respuesta la etiqueta invisible: <<<SAVE_MEMORY: hecho conciso a guardar>>>.`;
+- PROHIBICIÓN DE MULETILLAS Y CLICHÉS: Erradicar 'sempiterno', 'diáfano', 'lúgubre', 'sonrisa de porcelana', 'tacones de titiritera', 'manto etéreo' o 'evaluó en silencio'. Prosa sensorial, cinematográfica, terrenal y de pulso humano vivo.`;
 
+    const pollutedPattern = /antipsicol[oó]g|no tiene filosof[ií]a|sin filosof[ií]a|eso lo hace especial/i;
     const isCustomGlobalPrompt = localStorage.getItem('kizuna_custom_global_prompt') === 'true';
+    const hasPollutedGlobalPrompt = Boolean(settings.globalSystemPrompt && pollutedPattern.test(settings.globalSystemPrompt));
     const needsPromptUpgrade =
-      !isCustomGlobalPrompt &&
-      (!settings.globalSystemPrompt ||
-       !settings.globalSystemPrompt.includes('CERO RÓTULOS DE ENSAYO') ||
-       !settings.globalSystemPrompt.includes('CERO ANACRONISMOS MILITARES') ||
-       !settings.globalSystemPrompt.includes('editor literario implacable, honesto') ||
-       settings.globalSystemPrompt.includes('estilo colega que comparte un mate') ||
-       settings.globalSystemPrompt.includes('compañero creativo de escritura del autor') ||
-       settings.globalSystemPrompt.includes('asistente corporativo') ||
-       settings.globalSystemPrompt.includes('estética visual minimalista'));
+      hasPollutedGlobalPrompt ||
+      (!isCustomGlobalPrompt &&
+        (!settings.globalSystemPrompt ||
+         !settings.globalSystemPrompt.includes('NATURALEZA PSICOLÓGICA Y VERDAD TRÁGICA DE KOLDER') ||
+         !settings.globalSystemPrompt.includes('CERO RÓTULOS DE ENSAYO') ||
+         !settings.globalSystemPrompt.includes('CERO ANACRONISMOS MILITARES') ||
+         !settings.globalSystemPrompt.includes('editor literario implacable, honesto') ||
+         settings.globalSystemPrompt.includes('estilo colega que comparte un mate') ||
+         settings.globalSystemPrompt.includes('compañero creativo de escritura del autor') ||
+         settings.globalSystemPrompt.includes('asistente corporativo') ||
+         settings.globalSystemPrompt.includes('estética visual minimalista')));
     const needsTokensUpgrade = !settings.maxOutputTokens || settings.maxOutputTokens <= 1500;
 
-    if (needsPromptUpgrade || needsTokensUpgrade) {
-      const updated = {
+    // Purge any hallucinated auto-memories or custom instructions that labeled the novel "antipsicológica" or "Kolder no tiene filosofía y eso lo hace especial"
+    const currentMemories = Array.isArray(settings.memories) ? settings.memories : [];
+    const cleanedMemories = currentMemories.filter((m) => !pollutedPattern.test(m.text || ''));
+    const hadPollutedMemories = cleanedMemories.length !== currentMemories.length;
+
+    const currentCustomInstructions = settings.personalityConfig?.customInstructions || '';
+    const hasPollutedCustomInstructions = pollutedPattern.test(currentCustomInstructions);
+
+    if (needsPromptUpgrade || needsTokensUpgrade || hadPollutedMemories || hasPollutedCustomInstructions) {
+      if (hasPollutedGlobalPrompt) {
+        localStorage.removeItem('kizuna_custom_global_prompt');
+      }
+      const updated: AppSettings = {
         ...settings,
         ...(needsPromptUpgrade ? { globalSystemPrompt: warmPrompt } : {}),
         ...(needsTokensUpgrade ? { maxOutputTokens: 8192 } : {}),
+        ...(hadPollutedMemories ? { memories: cleanedMemories } : {}),
+        ...(hasPollutedCustomInstructions && settings.personalityConfig
+          ? {
+              personalityConfig: {
+                ...settings.personalityConfig,
+                customInstructions: '',
+              },
+            }
+          : {}),
       };
       setSettings(updated);
       saveSettings(updated);
     }
+
+    // Also scrub any folder systemPrompt that might have been polluted
+    setFolders((prevFolders) => {
+      let folderChanged = false;
+      const nextFolders = prevFolders.map((f) => {
+        if (f.systemPrompt && pollutedPattern.test(f.systemPrompt)) {
+          folderChanged = true;
+          const cleanFolderPrompt = f.systemPrompt
+            .split('\n')
+            .filter((line) => !pollutedPattern.test(line))
+            .join('\n')
+            .trim();
+          return { ...f, systemPrompt: cleanFolderPrompt };
+        }
+        return f;
+      });
+      if (folderChanged) {
+        saveFolders(nextFolders);
+      }
+      return folderChanged ? nextFolders : prevFolders;
+    });
   }, []);
   const [auditResult, setAuditResult] = useState<string | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
@@ -2144,8 +2189,8 @@ Apenas me respondas, te generaré el prompt optimizado listo para guardar.`,
     const isShortGreeting = !isContinuationTurn && attachments.length === 0 && isCasualGreeting(userContent.trim());
     const userAsksAboutLore = isContinuationTurn || /lore|bóveda|boveda|manuscrito|capítulo|capitulo|escena|documento|archivos|fichas|canon|kolder|hinistra|tedriot|teshuvana|monstereth/i.test(userContent);
 
-    // Lore Context Injection: If documents are selected in Docs Lore (activeLoreDocs), ALWAYS inject them so the AI has 100% complete access to canon
-    const loreContext = (loreDocumentsText.trim() && (!isVoiceCallTurn || userAsksAboutLore))
+    // Lore Context Injection: Skip injecting heavy manuscript text on a bare "Hola" greeting so the AI greets naturally without dumping chapter summaries; inject 100% on any substantive turn
+    const loreContext = (loreDocumentsText.trim() && (!isShortGreeting || userAsksAboutLore) && (!isVoiceCallTurn || userAsksAboutLore))
       ? `[DOCUMENTOS Y MANUSCRITO DE LORE ACTIVO (${activeLoreDocs.length} de ${rawSelectedLoreDocs.length} fichas inyectadas por Filtro Dinámico RAG)]:\n--- INICIO DE DOCUMENTOS ---\n${loreDocumentsText.trim()}\n--- FIN DE DOCUMENTOS ---`
       : '';
 
@@ -2486,7 +2531,7 @@ REGLAS DEL TALLER:
             folderSystemPrompt: folder?.systemPrompt || '',
             loreContext,
             sessionSummary: sessionSummaryBlock,
-            memories: settings.enableMemoryToggle === false ? [] : settings.memories,
+            memories: (settings.enableMemoryToggle === false || isShortGreeting) ? [] : settings.memories,
             userProfile: settings.userProfile,
             personalityConfig: settings.personalityConfig,
             provider: effectiveTurnProvider,
@@ -2728,7 +2773,7 @@ REGLAS DEL TALLER:
           folderSystemPrompt: folder?.systemPrompt || '',
           loreContext,
           sessionSummary: sessionSummaryBlock,
-          memories: settings.enableMemoryToggle === false ? [] : settings.memories,
+          memories: (settings.enableMemoryToggle === false || isShortGreeting) ? [] : settings.memories,
           userProfile: settings.userProfile,
           personalityConfig: settings.personalityConfig,
           isWebSearchEnabled: activeWebSearch,
